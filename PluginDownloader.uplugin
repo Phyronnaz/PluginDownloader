@@ -1,0 +1,24 @@
+﻿{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "0.1",
+	"FriendlyName": "Plugin Downloader",
+	"Description": "Download open source plugins from github",
+	"Category": "Editor",
+	"CreatedBy": "Phyronnaz",
+	"CreatedByURL": "https://twitter.com/phyronnaz",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"EnabledByDefault": true,
+	"CanContainContent": false,
+	"IsBetaVersion": false,
+	"Installed": false,
+	"Modules": [
+		{
+			"Name": "PluginDownloaderEditor",
+			"Type": "Editor",
+			"LoadingPhase": "PostDefault"
+		}
+	]
+}
