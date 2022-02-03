@@ -13,7 +13,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SSplitter.h"
 
-#include "ThirdParty/miniz.h"
+#include "miniz.h"
 #include "HttpModule.h"
 #include "UnrealEdMisc.h"
 #include "Misc/Paths.h"
@@ -512,6 +512,11 @@ void UPluginDownloaderInfo::PostEditChangeProperty(FPropertyChangedEvent& Proper
 	FillAutoComplete();
 
 	::SaveConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
+}
+
+void UPluginDownloaderInfo::FixupURL()
+{
+	URL = "https://api.github.com/repos/" + User + "/" + Repo + "/zipball/" + Branch;
 }
 
 void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)

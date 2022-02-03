@@ -71,11 +71,6 @@ public:
 private:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 
-	void FixupURL()
-	{
-		URL = "https://api.github.com/repos/" + User + "/" + Repo + "/zipball/" + Branch;
-		URL = "https://api.github.com/repos/VoxelPlugin/VoxelPro/zipball/master";
-	}
-
+	void FixupURL();
 	void OnDownloadFinished(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 };

@@ -14,6 +14,7 @@ public class PluginDownloaderEditor : ModuleRules
 
         PrivateDependencyModuleNames.AddRange(
             new string[] {
+                "PluginDownloaderMiniz",
                 "Core",
                 "CoreUObject",
                 "Engine",
