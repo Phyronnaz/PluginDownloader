@@ -16,6 +16,7 @@
 #include "Widgets/Layout/SSplitter.h"
 
 // Hack to make the marketplace review happy
+#include "HttpManager.h"
 #include "miniz.h"
 #include "miniz.cpp"
 
@@ -29,6 +30,7 @@
 #include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#include "HTTP/Private/HttpThread.h"
 
 #define LOCTEXT_NAMESPACE "PluginDownloader"
 
@@ -189,6 +191,35 @@ public:
 
 	virtual void StartupModule() override
 	{
+		// Hack to increase the HTTP tick rate
+		// Makes downloads much faster
+		{
+			FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
+
+			struct FHttpThreadHack : FHttpThread
+			{
+				void Fixup()
+				{
+					HttpThreadActiveFrameTimeInSeconds = 1 / 100000.f;
+				}
+			};
+
+			struct FHttpManagerHack : FHttpManager
+			{
+				void Fixup()
+				{
+					if (!Thread)
+					{
+						return;
+					}
+
+					static_cast<FHttpThreadHack*>(Thread)->Fixup();
+				}
+			};
+
+			static_cast<FHttpManagerHack&>(HttpManager).Fixup();
+		}
+
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		PropertyModule.RegisterCustomClassLayout(UPluginDownloaderInfo::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateLambda([]
 		{
