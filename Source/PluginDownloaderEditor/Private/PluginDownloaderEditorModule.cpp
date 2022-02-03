@@ -111,6 +111,49 @@ public:
 		check(Objects.Num() == 1);
 		UPluginDownloaderInfo* Info = CastChecked<UPluginDownloaderInfo>(Objects[0].Get());
 
+		const TSharedRef<IPropertyHandle> AccessTokenHandle = DetailLayout.GetProperty("AccessToken");
+		DetailLayout.EditDefaultProperty(AccessTokenHandle)->CustomWidget()
+		.NameContent()
+		[
+			AccessTokenHandle->CreatePropertyNameWidget()
+		]
+		.ValueContent()
+		[
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			[
+				SNew(SBox)
+				.MinDesiredWidth(120)
+				[
+					AccessTokenHandle->CreatePropertyValueWidget()
+				]
+			]
+			+ SHorizontalBox::Slot()
+			.Padding(2, 0)
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.OnClicked_Lambda([=]
+				{
+					FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
+					return FReply::Handled();
+				})
+				[
+					SNew(STextBlock)
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.ToolTipText(LOCTEXT("TokenTooltip", "Create a new token from your github account. Make sure to tick the REPO scope"))
+					.Text_Lambda([=]
+					{
+						return LOCTEXT("Create token", "Create token");
+					})
+				]
+			]
+		];
+
 		DetailLayout.EditCategory("Settings", {}, ECategoryPriority::Uncommon)
 		.AddCustomRow(LOCTEXT("Refresh", "Refresh"))
 		.NameContent()
@@ -352,6 +395,7 @@ void UPluginDownloaderInfo::Download()
 
 		Response = FString::Printf(TEXT("%f MB received"), BytesReceived / float(1 << 20));
 	});
+	AddAuth(*PendingRequest);
 	PendingRequest->ProcessRequest();
 
 	UE_LOG(LogTemp, Log, TEXT("Downloading %s"), *PendingRequest->GetURL());
@@ -368,9 +412,11 @@ void UPluginDownloaderInfo::Cancel()
 
 void UPluginDownloaderInfo::FillAutoComplete()
 {
+	const FString Prefix = bIsOrganization ? "orgs" : "users";
+
 	{
 		const TSharedRef<IHttpRequest, ESPMode::ThreadSafe> HttpRequest = FHttpModule::Get().CreateRequest();
-		HttpRequest->SetURL("https://api.github.com/users/" + User + "/repos?per_page=100");
+		HttpRequest->SetURL("https://api.github.com" / Prefix / User + "/repos?per_page=100");
 		HttpRequest->SetVerb(TEXT("GET"));
 		HttpRequest->OnProcessRequestComplete().BindWeakLambda(this, [=](FHttpRequestPtr, FHttpResponsePtr HttpResponse, bool bSucceeded)
 		{
@@ -404,6 +450,7 @@ void UPluginDownloaderInfo::FillAutoComplete()
 				CachedRepos.Add(JsonObject->GetStringField("name"));
 			}
 		});
+		AddAuth(*HttpRequest);
 		HttpRequest->ProcessRequest();
 	}
 	
@@ -442,8 +489,14 @@ void UPluginDownloaderInfo::FillAutoComplete()
 				CachedBranches.Add(JsonObject->GetStringField("name"));
 			}
 		});
+		AddAuth(*HttpRequest);
 		HttpRequest->ProcessRequest();
 	}
+}
+
+void UPluginDownloaderInfo::AddAuth(IHttpRequest& Request) const
+{
+	Request.SetHeader("Authorization", AccessToken);
 }
 
 void UPluginDownloaderInfo::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)

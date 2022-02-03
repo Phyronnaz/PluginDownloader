@@ -9,7 +9,7 @@
 UENUM()
 enum class EPluginDownloaderHost
 {
-	GitHub
+	GitHub UMETA(DisplayName = "GitHub")
 };
 
 UCLASS()
@@ -21,8 +21,16 @@ public:
 	UPROPERTY(VisibleAnywhere, Category = "Settings")
 	EPluginDownloaderHost Host = EPluginDownloaderHost::GitHub;
 
+	// Token to access private repositories
+	// Needs to have the REPO scope
+	UPROPERTY(EditAnywhere, Category = "Settings")
+	FString AccessToken;
+
 	UPROPERTY(EditAnywhere, Category = "Settings")
 	FString User = "Phyronnaz";
+	
+	UPROPERTY(EditAnywhere, Category = "Settings")
+	bool bIsOrganization = false;
 
 	UPROPERTY(EditAnywhere, Category = "Settings", meta = (GetOptions=GetRepoOptions))
 	FString Repo = "HLSLMaterial";
@@ -43,6 +51,7 @@ public:
 	void Download();
 	void Cancel();
 	void FillAutoComplete();
+	void AddAuth(IHttpRequest& Request) const;
 
 	UFUNCTION()
 	TArray<FString> GetRepoOptions() const
@@ -65,6 +74,7 @@ private:
 	void FixupURL()
 	{
 		URL = "https://api.github.com/repos/" + User + "/" + Repo + "/zipball/" + Branch;
+		URL = "https://api.github.com/repos/VoxelPlugin/VoxelPro/zipball/master";
 	}
 
 	void OnDownloadFinished(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
