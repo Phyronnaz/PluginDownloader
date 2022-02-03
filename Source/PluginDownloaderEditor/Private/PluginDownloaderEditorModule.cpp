@@ -20,11 +20,70 @@
 #include "Misc/ScopeExit.h"
 #include "Misc/FileHelper.h"
 #include "Misc/MessageDialog.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 
 #define LOCTEXT_NAMESPACE "PluginDownloader"
+
+inline void SaveConfig(UObject* Object, const FString& BaseSectionName, const FString& Filename = GEditorPerProjectIni, bool bAppendClassName = true)
+{
+	if (!ensure(Object))
+	{
+		return;
+	}
+
+	UClass* Class = Object->GetClass();
+	const UObject* CDO = Class->GetDefaultObject();
+
+	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
+	{
+		auto& Property = **It;
+		if (Property.HasAnyPropertyFlags(CPF_Transient)) continue;
+		if (!ensure(Property.ArrayDim == 1)) continue;
+
+		const FString Section = bAppendClassName ? BaseSectionName + TEXT(".") + Class->GetName() : BaseSectionName;
+
+		FString	Value;
+		if (Property.ExportText_InContainer(0, Value, Object, CDO, Object, PPF_None))
+		{
+			GConfig->SetString(*Section, *Property.GetName(), *Value, Filename);
+		}
+		else
+		{
+			GConfig->RemoveKey(*Section, *Property.GetName(), Filename);
+		}
+	}
+}
+
+inline void LoadConfig(UObject* Object, const FString& BaseSectionName, const FString& Filename = GEditorPerProjectIni, bool bAppendClassName = true)
+{
+	if (!ensure(Object))
+	{
+		return;
+	}
+
+	UClass* Class = Object->GetClass();
+	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
+	{
+		auto& Property = **It;
+		if (Property.HasAnyPropertyFlags(CPF_Transient)) continue;
+		if (!ensure(Property.ArrayDim == 1)) continue;
+		
+		const FString Section = bAppendClassName ? BaseSectionName + TEXT(".") + Class->GetName() : BaseSectionName;
+
+		FString Value;
+		if (GConfig->GetString(*Section, *Property.GetName(), Value, Filename))
+		{
+			Property.ImportText(*Value, Property.ContainerPtrToValuePtr<void>(Object), PPF_None, Object);
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
 
 struct FTabSpawnerEntryHack : public FWorkspaceItem
 {
@@ -217,7 +276,7 @@ public:
 		.AutoHeight()
 		.Padding(FMargin(2.0f, 2.0f, 2.0f, 0.0f))
 		.HAlign(HAlign_Right)
-			[
+		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
 			.AutoWidth()
@@ -258,6 +317,8 @@ public:
 		Args.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Hide;
 
 		GetMutableDefault<UPluginDownloaderInfo>()->FillAutoComplete();
+
+		LoadConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		const TSharedRef<IDetailsView> DetailsView = PropertyModule.CreateDetailView(Args);
@@ -396,6 +457,8 @@ void UPluginDownloaderInfo::PostEditChangeProperty(FPropertyChangedEvent& Proper
 
 	FixupURL();
 	FillAutoComplete();
+
+	::SaveConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
 }
 
 void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
