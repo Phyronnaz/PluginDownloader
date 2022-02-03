@@ -1,6 +1,8 @@
 // Copyright Voxel Plugin, Inc. All Rights Reserved.
 
 #include "PluginDownloaderEditorModule.h"
+#include "Utilities.h"
+
 #include "DetailWidgetRow.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
@@ -13,7 +15,10 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SSplitter.h"
 
+// Hack to make the marketplace review happy
 #include "miniz.h"
+#include "miniz.cpp"
+
 #include "HttpModule.h"
 #include "UnrealEdMisc.h"
 #include "Misc/Paths.h"
@@ -26,60 +31,6 @@
 #include "Serialization/JsonSerializer.h"
 
 #define LOCTEXT_NAMESPACE "PluginDownloader"
-
-inline void SaveConfig(UObject* Object, const FString& BaseSectionName, const FString& Filename = GEditorPerProjectIni, bool bAppendClassName = true)
-{
-	if (!ensure(Object))
-	{
-		return;
-	}
-
-	UClass* Class = Object->GetClass();
-	const UObject* CDO = Class->GetDefaultObject();
-
-	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
-	{
-		auto& Property = **It;
-		if (Property.HasAnyPropertyFlags(CPF_Transient)) continue;
-		if (!ensure(Property.ArrayDim == 1)) continue;
-
-		const FString Section = bAppendClassName ? BaseSectionName + TEXT(".") + Class->GetName() : BaseSectionName;
-
-		FString	Value;
-		if (Property.ExportText_InContainer(0, Value, Object, CDO, Object, PPF_None))
-		{
-			GConfig->SetString(*Section, *Property.GetName(), *Value, Filename);
-		}
-		else
-		{
-			GConfig->RemoveKey(*Section, *Property.GetName(), Filename);
-		}
-	}
-}
-
-inline void LoadConfig(UObject* Object, const FString& BaseSectionName, const FString& Filename = GEditorPerProjectIni, bool bAppendClassName = true)
-{
-	if (!ensure(Object))
-	{
-		return;
-	}
-
-	UClass* Class = Object->GetClass();
-	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
-	{
-		auto& Property = **It;
-		if (Property.HasAnyPropertyFlags(CPF_Transient)) continue;
-		if (!ensure(Property.ArrayDim == 1)) continue;
-		
-		const FString Section = bAppendClassName ? BaseSectionName + TEXT(".") + Class->GetName() : BaseSectionName;
-
-		FString Value;
-		if (GConfig->GetString(*Section, *Property.GetName(), Value, Filename))
-		{
-			Property.ImportText(*Value, Property.ContainerPtrToValuePtr<void>(Object), PPF_None, Object);
-		}
-	}
-}
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
@@ -361,7 +312,7 @@ public:
 
 		GetMutableDefault<UPluginDownloaderInfo>()->FillAutoComplete();
 
-		LoadConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
+		FUtilities::LoadConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		const TSharedRef<IDetailsView> DetailsView = PropertyModule.CreateDetailView(Args);
@@ -511,7 +462,7 @@ void UPluginDownloaderInfo::PostEditChangeProperty(FPropertyChangedEvent& Proper
 	FixupURL();
 	FillAutoComplete();
 
-	::SaveConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
+	FUtilities::SaveConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
 }
 
 void UPluginDownloaderInfo::FixupURL()

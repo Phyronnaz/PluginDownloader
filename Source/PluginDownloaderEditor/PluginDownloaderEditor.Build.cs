@@ -12,9 +12,11 @@ public class PluginDownloaderEditor : ModuleRules
 
         PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));
 
+        // Marketplace requires third party deps to be in a ThirdParty folder
+        PrivateIncludePaths.Add(ModuleDirectory + "/../ThirdParty");
+
         PrivateDependencyModuleNames.AddRange(
             new string[] {
-                "PluginDownloaderMiniz",
                 "Core",
                 "CoreUObject",
                 "Engine",
