@@ -620,8 +620,40 @@ void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHtt
 
 	if (FPaths::DirectoryExists(PluginDir))
 	{
-		Response = PluginDir + " already exists";
-		return;
+		if (FMessageDialog::Open(EAppMsgType::YesNo, FText::FromString(PluginDir + " already exists. Do you want to overwrite it?")) == EAppReturnType::No)
+		{
+			Response = PluginDir + " already exists";
+			return;
+		}
+
+
+		TArray<FString> FoundFiles;
+		IFileManager::Get().FindFilesRecursive(FoundFiles, *(PluginDir / "Binaries"), TEXT("*.modules"), true, false);
+
+		for (const FString& File : FoundFiles)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Deleting %s"), *File);
+			if (!IFileManager::Get().Delete(*File))
+			{
+				Response = "Failed to delete " + File;
+				return;
+			}
+		}
+
+		TArray<FString> FoldersToDelete;
+		FoldersToDelete.Add(PluginDir / "Config");
+		FoldersToDelete.Add(PluginDir / "Shaders");
+		FoldersToDelete.Add(PluginDir / "Source");
+
+		for (const FString& Folder : FoldersToDelete)
+		{
+			UE_LOG(LogTemp, Log, TEXT("Deleting %s"), *Folder);
+
+			if (!IFileManager::Get().DeleteDirectory(*Folder, false, true))
+			{
+				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to delete " + Folder));
+			}
+		}
 	}
 
 	for (const auto& It : Files)

@@ -9,6 +9,7 @@ public class PluginDownloaderEditor : ModuleRules
     public PluginDownloaderEditor(ReadOnlyTargetRules Target) : base(Target)
     {
         PCHUsage = PCHUsageMode.NoPCHs;
+        bUseUnity = false;
 
         PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));
 
