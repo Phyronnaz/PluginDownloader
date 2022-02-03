@@ -27,5 +27,10 @@ public class PluginDownloaderEditor : ModuleRules
                 "HTTP",
                 "Json",
             });
+
+        if (Target.Platform == UnrealTargetPlatform.Win64)
+        {
+		    PublicSystemLibraries.Add("crypt32.lib");
+        }
     }
 }

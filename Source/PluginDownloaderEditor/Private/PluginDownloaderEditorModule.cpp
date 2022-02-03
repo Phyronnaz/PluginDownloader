@@ -341,13 +341,15 @@ public:
 		Args.bHideSelectionTip = true;
 		Args.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Hide;
 
-		GetMutableDefault<UPluginDownloaderInfo>()->FillAutoComplete();
+		UPluginDownloaderInfo* Info = GetMutableDefault<UPluginDownloaderInfo>();
+		FUtilities::LoadConfig(Info, "PluginDownloaderInfo");
+		Info->AccessToken = FUtilities::DecryptData(Info->AccessToken);
 
-		FUtilities::LoadConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
+		GetMutableDefault<UPluginDownloaderInfo>()->FillAutoComplete();
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		const TSharedRef<IDetailsView> DetailsView = PropertyModule.CreateDetailView(Args);
-		DetailsView->SetObject(GetMutableDefault<UPluginDownloaderInfo>());
+		DetailsView->SetObject(Info);
 
 		Tab->SetContent(DetailsView);
 
@@ -493,7 +495,9 @@ void UPluginDownloaderInfo::PostEditChangeProperty(FPropertyChangedEvent& Proper
 	FixupURL();
 	FillAutoComplete();
 
-	FUtilities::SaveConfig(GetMutableDefault<UPluginDownloaderInfo>(), "PluginDownloaderInfo");
+	AccessToken = FUtilities::EncryptData(AccessToken);
+	FUtilities::SaveConfig(this, "PluginDownloaderInfo");
+	AccessToken = FUtilities::DecryptData(AccessToken);
 }
 
 void UPluginDownloaderInfo::FixupURL()
