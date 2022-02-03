@@ -8,17 +8,19 @@
 	"CreatedBy": "Phyronnaz",
 	"CreatedByURL": "https://twitter.com/phyronnaz",
 	"DocsURL": "",
-	"MarketplaceURL": "",
+	"MarketplaceURL": "com.epicgames.launcher://ue/marketplace/content/b5ff499954db477eb46af6537f1f9c1b",
 	"SupportURL": "",
 	"EnabledByDefault": true,
 	"CanContainContent": false,
-	"IsBetaVersion": false,
 	"Installed": false,
 	"Modules": [
 		{
 			"Name": "PluginDownloaderEditor",
 			"Type": "Editor",
-			"LoadingPhase": "PostDefault"
+			"LoadingPhase": "PostDefault",
+			"WhitelistPlatforms": [
+				"Win64"
+			]
 		}
 	]
 }

@@ -11,7 +11,6 @@ public class PluginDownloaderEditor : ModuleRules
         PCHUsage = PCHUsageMode.NoPCHs;
 
         PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));
-        PublicIncludePaths.Add(Path.Combine(ModuleDirectory, "Public"));
 
         PrivateDependencyModuleNames.AddRange(
             new string[] {
@@ -23,6 +22,7 @@ public class PluginDownloaderEditor : ModuleRules
                 "SlateCore",
                 "EditorStyle",
                 "HTTP",
+                "Json",
             });
     }
 }
