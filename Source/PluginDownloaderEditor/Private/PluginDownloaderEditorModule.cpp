@@ -295,11 +295,16 @@ public:
 		const TSharedPtr<SSplitter> Splitter = GET_CHILD(SSplitter, VerticalBox1, 0);
 		const TSharedPtr<SVerticalBox> FinalVerticalBox = GET_CHILD(SVerticalBox, Splitter, 1);
 		const TSharedPtr<SButton> NewPluginButton = GET_CHILD(SButton, FinalVerticalBox, 3);
+		const TSharedPtr<STextBlock> NewPluginText = GET_CHILD(STextBlock, NewPluginButton, 0);
 
-		if (!ensure(NewPluginButton))
+#undef GET_CHILD
+
+		if (!ensure(NewPluginText))
 		{
 			return DockTab;
 		}
+
+		NewPluginText->SetText(LOCTEXT("CreateNewPlugin", "Create New Plugin"));
 
 		FinalVerticalBox->RemoveSlot(NewPluginButton.ToSharedRef());
 		
