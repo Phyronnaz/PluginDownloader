@@ -32,6 +32,12 @@
 #include "Serialization/JsonSerializer.h"
 #include "HTTP/Private/HttpThread.h"
 
+#if PLATFORM_WINDOWS
+#include "Windows/AllowWindowsPlatformTypes.h"
+#include <processthreadsapi.h>
+#include "Windows/HideWindowsPlatformTypes.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "PluginDownloader"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -520,7 +526,7 @@ void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHtt
 		{
 			if (FMessageDialog::Open(EAppMsgType::YesNo, FText::FromString("Download successful. Do you want to restart to reload the plugin?")) == EAppReturnType::Yes)
 			{
-				FUnrealEdMisc::Get().RestartEditor(false);
+				GEngine->DeferredCommands.Add(TEXT("CLOSE_SLATE_MAINFRAME"));
 			}
 		}
 		else
@@ -614,9 +620,19 @@ void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHtt
 		return;
 	}
 
+	const FString Timestamp = FDateTime::Now().ToString();
 	const FString PluginName = FPaths::GetBaseFilename(UPlugin);
 	const FString Prefix = FPaths::GetPath(UPlugin);
 	const FString PluginDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectPluginsDir() / PluginName);
+	const FString PluginDownloaderDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectIntermediateDir() / "PluginDownloader");
+
+	const FString PluginTrashDir = PluginDownloaderDir / "Trash" /  Timestamp / PluginName;
+	const FString PluginDownloadDir = PluginDownloaderDir / "Downloads" / Timestamp / PluginName;
+	const FString BatchFile = PluginDownloaderDir / "InstallPlugin.bat";
+	const FString RestartBatchFile = PluginDownloaderDir / "RestartEngine.bat";
+	const FString PluginBatchFile = PluginDownloaderDir / "InstallPlugin_" + PluginName + ".bat";
+
+	IFileManager::Get().MakeDirectory(*PluginTrashDir, true);
 
 	if (FPaths::DirectoryExists(PluginDir))
 	{
@@ -625,35 +641,41 @@ void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHtt
 			Response = PluginDir + " already exists";
 			return;
 		}
+	}
 
+	const FString Batch
+	{
+#include "InstallPluginScript.inl"
+	};
+	if (!FFileHelper::SaveStringToFile(Batch, *BatchFile))
+	{
+		Response = "Failed to write " + BatchFile;
+		return;
+	}
 
-		TArray<FString> FoundFiles;
-		IFileManager::Get().FindFilesRecursive(FoundFiles, *(PluginDir / "Binaries"), TEXT("*.modules"), true, false);
+	const FString PluginBatch = FString::Printf(TEXT("start InstallPlugin.bat %u \"%s\" \"%s\" \"%s\" %s"),
+		FPlatformProcess::GetCurrentProcessId(),
+		*PluginDir,
+		*PluginTrashDir,
+		*PluginDownloadDir,
+		*PluginName);
 
-		for (const FString& File : FoundFiles)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Deleting %s"), *File);
-			if (!IFileManager::Get().Delete(*File))
-			{
-				Response = "Failed to delete " + File;
-				return;
-			}
-		}
+	if (!FFileHelper::SaveStringToFile(PluginBatch, *PluginBatchFile))
+	{
+		Response = "Failed to write " + PluginBatchFile;
+		return;
+	}
 
-		TArray<FString> FoldersToDelete;
-		FoldersToDelete.Add(PluginDir / "Config");
-		FoldersToDelete.Add(PluginDir / "Shaders");
-		FoldersToDelete.Add(PluginDir / "Source");
+	FString RestartBatch = "start \"";
+	RestartBatch += FPlatformProcess::ExecutablePath();
+	RestartBatch += "\" ";
+	RestartBatch += FCommandLine::GetOriginal();
+	RestartBatch += "\r\nexit";
 
-		for (const FString& Folder : FoldersToDelete)
-		{
-			UE_LOG(LogTemp, Log, TEXT("Deleting %s"), *Folder);
-
-			if (!IFileManager::Get().DeleteDirectory(*Folder, false, true))
-			{
-				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Failed to delete " + Folder));
-			}
-		}
+	if (!FFileHelper::SaveStringToFile(RestartBatch, *RestartBatchFile))
+	{
+		Response = "Failed to write " + RestartBatchFile;
+		return;
 	}
 
 	for (const auto& It : Files)
@@ -668,7 +690,7 @@ void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHtt
 			continue;
 		}
 
-		const FString TargetPath = PluginDir / LocalPath;
+		const FString TargetPath = PluginDownloadDir / LocalPath;
 
 		UE_LOG(LogTemp, Log, TEXT("Extracting %s to %s"), *File, *TargetPath);
 
@@ -686,8 +708,41 @@ void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHtt
 			return;
 		}
 	}
+
 #undef CheckZipError
 #undef CheckZip
+
+	FString CommandLine = PluginBatchFile.Replace(TEXT("/"), TEXT("\\"));
+
+#if PLATFORM_WINDOWS
+	// initialize startup info
+	STARTUPINFOW StartupInfo = {};
+	StartupInfo.cb = sizeof(StartupInfo);
+
+	StartupInfo.dwFlags = STARTF_USESHOWWINDOW;
+	StartupInfo.wShowWindow = SW_SHOW;
+
+	PROCESS_INFORMATION ProcInfo;
+	const BOOL bSuccess = CreateProcessW(
+		nullptr,
+		CommandLine.GetCharArray().GetData(),
+		nullptr,
+		nullptr,
+		Windows::FALSE,
+		CREATE_UNICODE_ENVIRONMENT | CREATE_NEW_CONSOLE,
+		nullptr,
+		*FPaths::GetPath(BatchFile),
+		&StartupInfo,
+		&ProcInfo);
+
+	if (!ensure(bSuccess))
+	{
+		Response = "Failed to create bat process";
+		return;
+	}
+#else
+	ensure(false);
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE
