@@ -480,7 +480,7 @@ void UPluginDownloaderInfo::FillAutoComplete()
 
 void UPluginDownloaderInfo::AddAuth(IHttpRequest& Request) const
 {
-	Request.SetHeader("Authorization", AccessToken);
+	Request.SetHeader("Authorization", "token " + AccessToken);
 }
 
 void UPluginDownloaderInfo::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
