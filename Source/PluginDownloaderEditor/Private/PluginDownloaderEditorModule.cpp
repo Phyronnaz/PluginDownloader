@@ -527,10 +527,12 @@ void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHtt
 
 	ON_SCOPE_EXIT
 	{
+		FPlatformProcess::Sleep(1);
+
 		const TSharedPtr<SWindow> ActiveWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
 		if (ActiveWindow.IsValid())
 		{
-			ActiveWindow->BringToFront(true);
+			ActiveWindow->HACK_ForceToFront();
 		}
 
 		if (Response == "Success")
