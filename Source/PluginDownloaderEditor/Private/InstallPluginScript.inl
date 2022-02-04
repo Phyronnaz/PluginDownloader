@@ -45,11 +45,6 @@ if errorlevel 1 (
 )
 
 start RestartEngine.bat
-
-echo ##########################################
-echo ### Success! You can close this window ###
-echo ##########################################
-pause
 exit
 
 )"
