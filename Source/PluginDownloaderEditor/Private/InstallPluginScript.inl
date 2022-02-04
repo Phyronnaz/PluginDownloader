@@ -50,5 +50,6 @@ echo ##########################################
 echo ### Success! You can close this window ###
 echo ##########################################
 pause
+exit
 
 )"

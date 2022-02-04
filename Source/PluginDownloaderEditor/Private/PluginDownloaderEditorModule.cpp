@@ -16,11 +16,11 @@
 #include "Widgets/Layout/SSplitter.h"
 
 // Hack to make the marketplace review happy
-#include "HttpManager.h"
 #include "miniz.h"
 #include "miniz.cpp"
 
 #include "HttpModule.h"
+#include "HttpManager.h"
 #include "UnrealEdMisc.h"
 #include "Misc/Paths.h"
 #include "Misc/ScopeExit.h"
@@ -527,6 +527,12 @@ void UPluginDownloaderInfo::OnDownloadFinished(FHttpRequestPtr HttpRequest, FHtt
 
 	ON_SCOPE_EXIT
 	{
+		const TSharedPtr<SWindow> ActiveWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
+		if (ActiveWindow.IsValid())
+		{
+			ActiveWindow->BringToFront(true);
+		}
+
 		if (Response == "Success")
 		{
 			if (FMessageDialog::Open(EAppMsgType::YesNo, FText::FromString("Download successful. Do you want to restart to reload the plugin?")) == EAppReturnType::Yes)
