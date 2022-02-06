@@ -24,7 +24,7 @@ struct FPluginDownloaderRemotePluginInfo
 	FString Repo;
 
 	UPROPERTY()
-	FString Branch;
+	TMap<FString, FString> Branches;
 };
 
 using FRemotePluginInfo = FPluginDownloaderRemotePluginInfo;

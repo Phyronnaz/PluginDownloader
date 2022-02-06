@@ -58,7 +58,19 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 				Remote->Info = {};
 				Remote->Info.User = RemoteInfo.User;
 				Remote->Info.Repo = RemoteInfo.Repo;
-				Remote->Info.Branch = RemoteInfo.Branch;
+
+				Remote->BranchDisplayNameToName.Reset();
+				for (auto& It : RemoteInfo.Branches)
+				{
+					ensure(!Remote->BranchDisplayNameToName.Contains(It.Value));
+					Remote->BranchDisplayNameToName.Add(It.Value, It.Key);
+				}
+
+				RemoteInfo.Branches.GenerateValueArray(Remote->BranchOptions);
+				if (ensure(Remote->BranchOptions.Num() > 0))
+				{
+					Remote->Branch = Remote->BranchOptions[0];
+				}
 				Downloader = Remote;
 				DetailsView->SetObject(Remote);
 			})

@@ -119,8 +119,23 @@ public:
 	UPROPERTY()
 	FPluginDownloaderInfo Info;
 
+	UPROPERTY(EditAnywhere, Category = "Settings", meta = (GetOptions=BranchOptions))
+	FString Branch;
+
+	UPROPERTY(Transient)
+	TArray<FString> BranchOptions;
+
+	TMap<FString, FString> BranchDisplayNameToName;
+
 public:
-	virtual FPluginDownloaderInfo GetInfo() override { return Info; }
+	virtual FPluginDownloaderInfo GetInfo() override
+	{
+		ensure(BranchDisplayNameToName.Contains(Branch));
+
+		FPluginDownloaderInfo FullInfo = Info;
+		FullInfo.Branch = BranchDisplayNameToName.FindRef(Branch);
+		return FullInfo;
+	}
 };
 
 UCLASS()
