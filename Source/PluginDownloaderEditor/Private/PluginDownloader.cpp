@@ -317,9 +317,9 @@ void FPluginDownloader::GetRepoAutocomplete(const FPluginDownloaderInfo& Info, F
 	{
 		if (!bSucceeded || HttpResponse->GetResponseCode() != EHttpResponseCodes::Ok)
 		{
-			if (!bIsOrganization)
+			if (bIsOrganization)
 			{
-				GetRepoAutocomplete(Info, OnAutocompleteReceived, true);
+				GetRepoAutocomplete(Info, OnAutocompleteReceived, false);
 			}
 			return;
 		}
