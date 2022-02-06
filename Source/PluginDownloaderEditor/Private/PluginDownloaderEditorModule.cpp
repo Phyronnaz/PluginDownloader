@@ -1,6 +1,7 @@
 // Copyright Voxel Plugin, Inc. All Rights Reserved.
 
 #include "Utilities.h"
+#include "SPluginList.h"
 #include "PluginDownloader.h"
 
 #include "DetailWidgetRow.h"
@@ -55,29 +56,11 @@ public:
 			]
 		];
 
-		DetailLayout.EditCategory("Settings", {}, ECategoryPriority::Uncommon)
-		.AddCustomRow(LOCTEXT("Refresh", "Refresh"))
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			.Text_Lambda([=]
-			{
-				return LOCTEXT("Refresh", "Refresh");
-			})
-		]
-		.ValueContent()
-		[
-			SNew(SButton)
-			.ContentPadding(2)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.OnClicked_Lambda([=]
-			{
-				Base->FillAutoComplete();
-
-				return FReply::Handled();
-			})
+		if (Base->IsA<UPluginDownloaderCustom>())
+		{
+			DetailLayout.EditCategory("Settings", {}, ECategoryPriority::Uncommon)
+			.AddCustomRow(LOCTEXT("Refresh", "Refresh"))
+			.NameContent()
 			[
 				SNew(STextBlock)
 				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
@@ -86,7 +69,28 @@ public:
 					return LOCTEXT("Refresh", "Refresh");
 				})
 			]
-		];
+			.ValueContent()
+			[
+				SNew(SButton)
+				.ContentPadding(2)
+				.VAlign(VAlign_Center)
+				.HAlign(HAlign_Center)
+				.OnClicked_Lambda([=]
+				{
+					Base->FillAutoComplete();
+
+					return FReply::Handled();
+				})
+				[
+					SNew(STextBlock)
+					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Text_Lambda([=]
+					{
+						return LOCTEXT("Refresh", "Refresh");
+					})
+				]
+			];
+		}
 
 		DetailLayout.EditCategory("Output", {}, ECategoryPriority::Uncommon)
 		.AddCustomRow(LOCTEXT("Download", "Download"))
@@ -204,11 +208,19 @@ public:
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 					.ColorAndOpacity_Lambda([=]
 					{
-						return Tokens->GithubStatus.IsEmpty() ? FSlateColor::UseForeground() : FSlateColor(FColor::Red);
+						return Tokens->GithubStatus.IsEmpty()
+							? Tokens->GithubAccessToken.IsEmpty()
+							? FSlateColor(FColor::Orange)
+							: FSlateColor::UseForeground()
+							: FSlateColor(FColor::Red);
 					})
 					.Text_Lambda([=]
 					{
-						return FText::FromString(Tokens->GithubStatus.IsEmpty() ? "Valid token" : Tokens->GithubStatus);
+						return FText::FromString(Tokens->GithubStatus.IsEmpty()
+							? Tokens->GithubAccessToken.IsEmpty()
+							? "Empty token"
+							: "Valid token"
+							: Tokens->GithubStatus);
 					})
 				]
 			];
@@ -415,26 +427,51 @@ public:
 		FDetailsViewArgs Args;
 		Args.bHideSelectionTip = true;
 		Args.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Hide;
+		Args.bAllowSearch = false;
 
 		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 		
 		const TSharedRef<IDetailsView> TokensDetailsView = PropertyModule.CreateDetailView(Args);
 		TokensDetailsView->SetObject(Tokens);
 
-		const TSharedRef<IDetailsView> CustomDetailsView = PropertyModule.CreateDetailView(Args);
-		CustomDetailsView->SetObject(Custom);
+		const TSharedRef<IDetailsView> DetailsView = PropertyModule.CreateDetailView(Args);
 
 		Tab->SetContent(
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()
-			.AutoHeight()
+			SNew(SHorizontalBox)
+			+ SHorizontalBox::Slot()
+			.AutoWidth()
+			.Padding(0, 0, 5, 0)
 			[
-				TokensDetailsView
+				SNew(SPluginList)
+				.OnInfoSelected_Lambda([=](const FRemotePluginInfo& RemoteInfo)
+				{
+					if (RemoteInfo.Name == "Custom")
+					{
+						DetailsView->SetObject(Custom);
+						return;
+					}
+
+					UPluginDownloaderRemote* Remote = GetMutableDefault<UPluginDownloaderRemote>();
+					Remote->Info = {};
+					Remote->Info.User = RemoteInfo.User;
+					Remote->Info.Repo = RemoteInfo.Repo;
+					Remote->Info.Branch = RemoteInfo.Branch;
+					DetailsView->SetObject(Remote);
+				})
 			]
-			+ SVerticalBox::Slot()
-			.AutoHeight()
+			+ SHorizontalBox::Slot()
 			[
-				CustomDetailsView
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					TokensDetailsView
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				[
+					DetailsView
+				]
 			]
 		);
 

@@ -129,7 +129,7 @@ public:
 	virtual FPluginDownloaderInfo GetInfo() { return {}; }
 
 public:
-	UPROPERTY(VisibleAnywhere, Category = "Settings")
+	UPROPERTY(VisibleAnywhere, Category = "Output")
 	FString Progress;
 
 	bool IsDownloading() const
@@ -141,6 +141,19 @@ public:
 
 private:
 	TSharedPtr<FPluginDownloaderDownload> ActiveDownload;
+};
+
+UCLASS()
+class UPluginDownloaderRemote : public UPluginDownloaderBase
+{
+	GENERATED_BODY()
+
+public:
+	UPROPERTY()
+	FPluginDownloaderInfo Info;
+
+public:
+	virtual FPluginDownloaderInfo GetInfo() override { return Info; }
 };
 
 UCLASS()

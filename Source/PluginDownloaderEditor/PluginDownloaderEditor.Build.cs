@@ -24,9 +24,12 @@ public class PluginDownloaderEditor : ModuleRules
                 "UnrealEd",
                 "Slate",
                 "SlateCore",
+                "InputCore",
                 "EditorStyle",
                 "HTTP",
                 "Json",
+                "JsonUtilities",
+                "ImageDownload",
             });
 
         if (Target.Platform == UnrealTargetPlatform.Win64)

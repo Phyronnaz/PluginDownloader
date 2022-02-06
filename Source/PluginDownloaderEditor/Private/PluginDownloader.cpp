@@ -299,6 +299,12 @@ void FPluginDownloader::GetBranchAutocomplete(const FPluginDownloaderInfo& Info,
 
 void FPluginDownloader::OnComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
 {
+	if (HttpResponse && HttpResponse->GetResponseCode() == EHttpResponseCodes::NotFound)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Repository not found. Make sure you have a valid access token.\n\nURL: " + HttpResponse->GetURL()));
+		return;
+	}
+
 	const FString Error = OnComplete_Internal(HttpResponse, bSucceeded);
 
 	FPlatformProcess::Sleep(1);
