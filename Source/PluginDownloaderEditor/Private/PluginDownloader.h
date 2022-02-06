@@ -94,6 +94,9 @@ public:
 
 	static void GetRepoAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived, bool bIsOrganization = false);
 	static void GetBranchAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived);
+	static void GetTagAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived);
+
+	static void GetBranchAndTagAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived);
 
 private:
 	static void OnComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
@@ -131,10 +134,8 @@ public:
 public:
 	virtual FPluginDownloaderInfo GetInfo() override
 	{
-		ensure(BranchDisplayNameToName.Contains(Branch));
-
 		FPluginDownloaderInfo FullInfo = Info;
-		FullInfo.Branch = BranchDisplayNameToName.FindRef(Branch);
+		FullInfo.Branch = BranchDisplayNameToName.Contains(Branch) ? BranchDisplayNameToName[Branch] : Branch;
 		return FullInfo;
 	}
 };

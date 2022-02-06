@@ -59,18 +59,33 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 				Remote->Info.User = RemoteInfo.User;
 				Remote->Info.Repo = RemoteInfo.Repo;
 
+				Remote->Branch.Reset();
+				Remote->BranchOptions.Reset();
 				Remote->BranchDisplayNameToName.Reset();
-				for (auto& It : RemoteInfo.Branches)
+
+				if (RemoteInfo.Branches.Num() > 0)
 				{
-					ensure(!Remote->BranchDisplayNameToName.Contains(It.Value));
-					Remote->BranchDisplayNameToName.Add(It.Value, It.Key);
+					for (auto& It : RemoteInfo.Branches)
+					{
+						ensure(!Remote->BranchDisplayNameToName.Contains(It.Value));
+						Remote->BranchDisplayNameToName.Add(It.Value, It.Key);
+					}
+
+					RemoteInfo.Branches.GenerateValueArray(Remote->BranchOptions);
+
+					if (ensure(Remote->BranchOptions.Num() > 0))
+					{
+						Remote->Branch = Remote->BranchOptions[0];
+					}
+				}
+				else
+				{
+					FPluginDownloader::GetBranchAndTagAutocomplete(Remote->Info, FOnAutocompleteReceived::CreateWeakLambda(Remote, [=](const TArray<FString>& Result)
+					{
+						Remote->BranchOptions = Result;
+					}));
 				}
 
-				RemoteInfo.Branches.GenerateValueArray(Remote->BranchOptions);
-				if (ensure(Remote->BranchOptions.Num() > 0))
-				{
-					Remote->Branch = Remote->BranchOptions[0];
-				}
 				Downloader = Remote;
 				DetailsView->SetObject(Remote);
 			})
