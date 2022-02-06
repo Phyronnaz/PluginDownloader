@@ -24,7 +24,7 @@ class UPluginDownloaderTokens : public UObject
 public:
 	// Token to access github private repositories
 	// Needs to have the REPO scope
-	UPROPERTY(EditAnywhere, Category = "Authentication", Transient)
+	UPROPERTY(EditAnywhere, Category = "Authentication", Transient, meta = (PasswordField = true))
 	FString GithubAccessToken;
 
 	UPROPERTY(VisibleAnywhere, Category = "Authentication", Transient)

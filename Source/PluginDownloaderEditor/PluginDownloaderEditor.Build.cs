@@ -22,6 +22,7 @@ public class PluginDownloaderEditor : ModuleRules
                 "CoreUObject",
                 "Engine",
                 "UnrealEd",
+                "Projects",
                 "Slate",
                 "SlateCore",
                 "InputCore",
@@ -30,6 +31,7 @@ public class PluginDownloaderEditor : ModuleRules
                 "Json",
                 "JsonUtilities",
                 "ImageDownload",
+                "MediaAssets",
             });
 
         if (Target.Platform == UnrealTargetPlatform.Win64)

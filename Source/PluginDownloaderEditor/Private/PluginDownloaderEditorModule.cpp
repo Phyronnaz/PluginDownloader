@@ -2,14 +2,13 @@
 
 #include "Utilities.h"
 #include "SPluginList.h"
+#include "SVideoPlayer.h"
 #include "PluginDownloader.h"
 
 #include "DetailWidgetRow.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "IDetailCustomization.h"
-#include "Modules/ModuleManager.h"
-#include "Modules/ModuleInterface.h"
 #include "Widgets/SToolTip.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Text/STextBlock.h"
@@ -19,8 +18,12 @@
 #include "HttpModule.h"
 #include "HttpManager.h"
 #include "UnrealEdMisc.h"
+#include "FileMediaSource.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Modules/ModuleManager.h"
+#include "Modules/ModuleInterface.h"
 #include "HTTP/Private/HttpThread.h"
+#include "Interfaces/IPluginManager.h"
 
 #define LOCTEXT_NAMESPACE "PluginDownloader"
 
@@ -173,7 +176,50 @@ public:
 					.HAlign(HAlign_Center)
 					.OnClicked_Lambda([=]
 					{
-						FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
+						UFileMediaSource* MediaSource = NewObject<UFileMediaSource>();
+						MediaSource->FilePath = IPluginManager::Get().FindPlugin("PluginDownloader")->GetContentDir() / "HowToCreateToken.mp4";
+
+						const TSharedRef<SWindow> Window =
+							SNew(SWindow)
+							.Title(LOCTEXT("CreateTokenHowTo", "How to create a new token"))
+							.ClientSize(FVector2D(1280, 720))
+							.IsTopmostWindow(true);
+
+						Window->SetContent(
+							SNew(SVerticalBox)
+							+ SVerticalBox::Slot()
+							.FillHeight(1)
+							[
+								SNew(SVideoPlayer)
+								.Source(MediaSource)
+								.Size(FVector2D(1580, 826))
+							]
+							+ SVerticalBox::Slot()
+							.AutoHeight()
+							.Padding(0, 5)
+							[
+								SNew(SBox)
+								.HAlign(HAlign_Center)
+								[
+									SNew(SButton)
+									.ContentPadding(5)
+									.IsEnabled(true)
+									.ToolTip(SNew(SToolTip).Text(LOCTEXT("OpenBrowswer", "Click here to open the web browser")))
+									.TextStyle(FEditorStyle::Get(), "LargeText")
+									.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+									.HAlign(HAlign_Center)
+									.Text(LOCTEXT("OpenWebBrowser", "Open Web Browser"))
+									.OnClicked_Lambda([=]
+									{
+										FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
+										return FReply::Handled();
+									})
+								]
+							]
+						);
+
+						FSlateApplication::Get().AddWindow(Window);
+
 						return FReply::Handled();
 					})
 					[
@@ -405,7 +451,6 @@ public:
 					FGlobalTabmanager::Get()->TryInvokeTab(DownloadPluginTabId);
 					return FReply::Handled();
 				})
-
 			]
 		];
 
