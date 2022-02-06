@@ -82,23 +82,25 @@ void UPluginDownloaderTokens::CheckTokens()
 	Request->ProcessRequest();
 }
 
-bool UPluginDownloaderTokens::AddAuthToRequest(EPluginDownloaderHost Host, IHttpRequest& Request, FString& OutError) const
+bool UPluginDownloaderTokens::HasValidToken() const
 {
-	check(Host == EPluginDownloaderHost::Github);
+	return GithubStatus.IsEmpty();
+}
 
-	if (!GithubStatus.IsEmpty())
-	{
-		ensure(!GithubAccessToken.IsEmpty());
-		OutError = GithubStatus;
-		return false;
-	}
+FString UPluginDownloaderTokens::GetTokenError() const
+{
+	ensure(!HasValidToken());
+	return GithubStatus;
+}
+
+void UPluginDownloaderTokens::AddAuthToRequest(IHttpRequest& Request) const
+{
+	ensure(HasValidToken());
 
 	if (!GithubAccessToken.IsEmpty())
 	{
 		Request.SetHeader("Authorization", "token " + GithubAccessToken);
 	}
-
-	return true;
 }
 
 void UPluginDownloaderTokens::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -107,6 +109,9 @@ void UPluginDownloaderTokens::PostEditChangeProperty(FPropertyChangedEvent& Prop
 
 	SaveToConfig();
 	CheckTokens();
+
+	// Update the custom view autocomplete with the new token
+	GetMutableDefault<UPluginDownloaderCustom>()->FillAutoComplete();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -115,13 +120,19 @@ void UPluginDownloaderTokens::PostEditChangeProperty(FPropertyChangedEvent& Prop
 
 FString FPluginDownloaderInfo::GetURL() const
 {
-	check(Host == EPluginDownloaderHost::Github);
 	return "https://api.github.com/repos/" + User + "/" + Repo + "/zipball/" + Branch;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
+
+TSharedPtr<FPluginDownloaderDownload> GActivePluginDownload;
+
+FPluginDownloaderDownload::~FPluginDownloaderDownload()
+{
+	ensure(bIsDone);
+}
 
 FPluginDownloaderDownload::FPluginDownloaderDownload(const FHttpRequestRef& Request)
 	: Request(Request)
@@ -130,15 +141,65 @@ FPluginDownloaderDownload::FPluginDownloaderDownload(const FHttpRequestRef& Requ
 
 void FPluginDownloaderDownload::Cancel()
 {
+	ensure(!bIsDone);
 	ensure(!bIsCancelled);
 	bIsCancelled = true;
 	Request->CancelRequest();
+
+	if (ensure(Window))
+	{
+		// Make sure the dialog is on top
+		Window->Minimize();
+	}
 	
 	UE_LOG(LogPluginDownloader, Log, TEXT("Cancelled %s"), *Request->GetURL());
+	FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Download cancelled"));
 }
 
 void FPluginDownloaderDownload::Start()
 {
+	ensure(GActivePluginDownload == AsShared());
+
+	ensure(!Window);
+	Window =
+		SNew(SWindow)
+		.Title(NSLOCTEXT("PluginDownloader", "DownloadingPlugin", "Downloading Plugin"))
+		.ClientSize(FVector2D(400, 100))
+		.IsTopmostWindow(true);
+
+	Window->SetContent(
+		SNew(SBorder)
+		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+		.Padding(2)
+		[
+			SNew(SBorder)
+			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.Padding(2)
+			[
+				SNew(SBox)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(STextBlock)
+					.Text_Lambda([This = AsShared()]
+					{
+						return FText::FromString(FString::Printf(TEXT("%f MB received"), This->Progress / float(1 << 20)));
+					})
+				]
+			]
+		]
+	);
+
+	Window->SetOnWindowClosed(FOnWindowClosed::CreateLambda([=](const TSharedRef<SWindow>&)
+	{
+		if (!bIsDone)
+		{
+			Cancel();
+		}
+	}));
+
+	FSlateApplication::Get().AddWindow(Window.ToSharedRef());
+
 	Request->OnRequestProgress().BindSP(this, &FPluginDownloaderDownload::OnProgressImpl);
 	Request->OnProcessRequestComplete().BindSP(this, &FPluginDownloaderDownload::OnCompleteImpl);
 	Request->ProcessRequest();
@@ -150,14 +211,24 @@ void FPluginDownloaderDownload::OnProgressImpl(FHttpRequestPtr HttpRequest, int3
 {
 	check(HttpRequest == Request);
 	Progress = BytesReceived;
-
-	OnProgress.Broadcast();
 }
 
 void FPluginDownloaderDownload::OnCompleteImpl(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded)
 {
 	ensure(!bIsDone);
 	bIsDone = true;
+
+	if (ensure(Window))
+	{
+		Window->RequestDestroyWindow();
+		Window.Reset();
+	}
+
+	ensure(GActivePluginDownload == AsShared());
+	ON_SCOPE_EXIT
+	{
+		GActivePluginDownload.Reset();
+	};
 
 	if (bIsCancelled)
 	{
@@ -166,34 +237,51 @@ void FPluginDownloaderDownload::OnCompleteImpl(FHttpRequestPtr HttpRequest, FHtt
 	check(HttpRequest == Request);
 
 	FPluginDownloader::OnComplete(HttpRequest, HttpResponse, bSucceeded);
-	OnComplete.Broadcast();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TSharedPtr<FPluginDownloaderDownload> FPluginDownloader::DownloadPlugin(const FPluginDownloaderInfo& Info)
+bool GPluginRestartIsPending = false;
+
+void FPluginDownloader::DownloadPlugin(const FPluginDownloaderInfo& Info)
 {
+	if (GActivePluginDownload)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Can't download: another plugin is already downloading"));
+		return;
+	}
+
+	if (GPluginRestartIsPending)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Can't download: another plugin is installing, please restart the engine"));
+		return;
+	}
+
+	const UPluginDownloaderTokens* Tokens = GetDefault<UPluginDownloaderTokens>();
+	if (!Tokens->HasValidToken())
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Can't download: " + Tokens->GetTokenError()));
+		return;
+	}
+
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Info.GetURL());
 	Request->SetVerb(TEXT("GET"));
+	Tokens->AddAuthToRequest(*Request);
 
-	FString Error;
-	if (!GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request, Error))
-	{
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Can't download: " + Error));
-		return nullptr;
-	}
-
-	const TSharedRef<FPluginDownloaderDownload> Download = MakeShareable(new FPluginDownloaderDownload(Request));
-	Download->Start();
-	return Download;
+	GActivePluginDownload = MakeShared<FPluginDownloaderDownload>(Request);
+	GActivePluginDownload->Start();
 }
 
 void FPluginDownloader::GetRepoAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived, bool bIsOrganization)
 {
-	check(Info.Host == EPluginDownloaderHost::Github);
+	const UPluginDownloaderTokens* Tokens = GetDefault<UPluginDownloaderTokens>();
+	if (!Tokens->HasValidToken())
+	{
+		return;
+	}
 
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL("https://api.github.com" / FString(bIsOrganization ? "orgs" : "users") / Info.User / "repos?per_page=100");
@@ -237,16 +325,17 @@ void FPluginDownloader::GetRepoAutocomplete(const FPluginDownloaderInfo& Info, F
 		OnAutocompleteReceived.ExecuteIfBound(Result);
 	});
 
-	FString Error;
-	if (GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request, Error))
-	{
-		Request->ProcessRequest();
-	}
+	Tokens->AddAuthToRequest(*Request);
+	Request->ProcessRequest();
 }
 
 void FPluginDownloader::GetBranchAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived)
 {
-	check(Info.Host == EPluginDownloaderHost::Github);
+	const UPluginDownloaderTokens* Tokens = GetDefault<UPluginDownloaderTokens>();
+	if (!Tokens->HasValidToken())
+	{
+		return;
+	}
 
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL("https://api.github.com/repos/" + Info.User / Info.Repo / "/branches");
@@ -286,11 +375,8 @@ void FPluginDownloader::GetBranchAutocomplete(const FPluginDownloaderInfo& Info,
 		OnAutocompleteReceived.ExecuteIfBound(Result);
 	});
 
-	FString Error;
-	if (GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request, Error))
-	{
-		Request->ProcessRequest();
-	}
+	Tokens->AddAuthToRequest(*Request);
+	Request->ProcessRequest();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -529,41 +615,10 @@ FString FPluginDownloader::OnComplete_Internal(FHttpResponsePtr HttpResponse, bo
 	ensure(false);
 #endif
 
+	ensure(!GPluginRestartIsPending);
+	GPluginRestartIsPending = true;
+
 	return {};
-}
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-void UPluginDownloaderBase::Download()
-{
-	ensure(!IsDownloading());
-	ActiveDownload = FPluginDownloader::DownloadPlugin(GetInfo());
-	if (!ActiveDownload)
-	{
-		return;
-	}
-
-	ActiveDownload->OnProgress.AddWeakLambda(this, [=]
-	{
-		Progress = FString::Printf(TEXT("%f MB received"), ActiveDownload->GetProgress() / float(1 << 20));
-	});
-
-	ActiveDownload->OnComplete.AddWeakLambda(this, [=]
-	{
-		Progress.Reset();
-	});
-}
-
-void UPluginDownloaderBase::Cancel()
-{
-	ensure(IsDownloading());
-
-	Progress = "Cancelled";
-
-	ActiveDownload->Cancel();
-	ActiveDownload.Reset();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

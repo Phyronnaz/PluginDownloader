@@ -6,15 +6,10 @@
 #include "Interfaces/IHttpRequest.h"
 #include "PluginDownloader.generated.h"
 
+class SWindow;
 class IHttpRequest;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogPluginDownloader, Log, All);
-
-UENUM()
-enum class EPluginDownloaderHost
-{
-	Github
-};
 
 UCLASS()
 class UPluginDownloaderTokens : public UObject
@@ -39,7 +34,10 @@ public:
 
 	void CheckTokens();
 
-	bool AddAuthToRequest(EPluginDownloaderHost Host, IHttpRequest& Request, FString& OutError) const;
+	bool HasValidToken() const;
+	FString GetTokenError() const;
+
+	void AddAuthToRequest(IHttpRequest& Request) const;
 
 protected:
 	//~ Begin UObject Interface
@@ -53,9 +51,6 @@ struct FPluginDownloaderInfo
 	GENERATED_BODY()
 		
 public:
-	UPROPERTY(EditAnywhere, Category = "Settings")
-	EPluginDownloaderHost Host = EPluginDownloaderHost::Github;
-
 	UPROPERTY(EditAnywhere, Category = "Settings")
 	FString User;
 	
@@ -71,34 +66,21 @@ public:
 class FPluginDownloaderDownload : public TSharedFromThis<FPluginDownloaderDownload>
 {
 public:
-	void Cancel();
-
-	bool IsDone() const
-	{
-		return bIsDone;
-	}
-	int32 GetProgress() const
-	{
-		return Progress;
-	}
-
-	FSimpleMulticastDelegate OnProgress;
-	FSimpleMulticastDelegate OnComplete;
-
-private:
-	explicit FPluginDownloaderDownload(const FHttpRequestRef& Request);
-
 	const FHttpRequestRef Request;
+	TSharedPtr<SWindow> Window;
+
 	int32 Progress = 0;
 	bool bIsDone = false;
 	bool bIsCancelled = false;
 
+	~FPluginDownloaderDownload();
+	explicit FPluginDownloaderDownload(const FHttpRequestRef& Request);
+
 	void Start();
+	void Cancel();
 
 	void OnProgressImpl(FHttpRequestPtr HttpRequest, int32 BytesSent, int32 BytesReceived);
 	void OnCompleteImpl(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
-
-	friend class FPluginDownloader;
 };
 
 DECLARE_DELEGATE_OneParam(FOnAutocompleteReceived, TArray<FString>);
@@ -107,7 +89,7 @@ DECLARE_DELEGATE_OneParam(FOnResponseReceived, FString);
 class FPluginDownloader
 {
 public:
-	static TSharedPtr<FPluginDownloaderDownload> DownloadPlugin(const FPluginDownloaderInfo& Info);
+	static void DownloadPlugin(const FPluginDownloaderInfo& Info);
 
 	static void GetRepoAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived, bool bIsOrganization = false);
 	static void GetBranchAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived);
@@ -125,22 +107,7 @@ class UPluginDownloaderBase : public UObject
 	GENERATED_BODY()
 
 public:
-	virtual void FillAutoComplete() {}
 	virtual FPluginDownloaderInfo GetInfo() { return {}; }
-
-public:
-	UPROPERTY(VisibleAnywhere, Category = "Output")
-	FString Progress;
-
-	bool IsDownloading() const
-	{
-		return ActiveDownload && !ActiveDownload->IsDone();
-	}
-	void Download();
-	void Cancel();
-
-private:
-	TSharedPtr<FPluginDownloaderDownload> ActiveDownload;
 };
 
 UCLASS()
@@ -173,7 +140,7 @@ public:
 	TArray<FString> BranchOptions;
 
 public:
-	virtual void FillAutoComplete() override;
+	void FillAutoComplete();
 	virtual FPluginDownloaderInfo GetInfo() override { return Info; }
 
 protected:

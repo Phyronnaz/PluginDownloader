@@ -1,8 +1,8 @@
 // Copyright Voxel Plugin, Inc. All Rights Reserved.
 
 #include "Utilities.h"
-#include "SPluginList.h"
 #include "SVideoPlayer.h"
+#include "SDownloadPlugin.h"
 #include "PluginDownloader.h"
 
 #include "DetailWidgetRow.h"
@@ -36,30 +36,8 @@ public:
 		DetailLayout.GetObjectsBeingCustomized(Objects);
 		check(Objects.Num() == 1);
 		UPluginDownloaderBase* Base = CastChecked<UPluginDownloaderBase>(Objects[0].Get());
-		
-		const TSharedRef<IPropertyHandle> ProgressHandle = DetailLayout.GetProperty("Progress");
-		DetailLayout.EditDefaultProperty(ProgressHandle)->CustomWidget()
-		.NameContent()
-		[
-			ProgressHandle->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		.MinDesiredWidth(300)
-		.MaxDesiredWidth(300)
-		[
-			SNew(SBox)
-			.VAlign(VAlign_Center)
-			[
-				SNew(STextBlock)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-				.Text_Lambda([=]
-				{
-					return FText::FromString(Base->Progress);
-				})
-			]
-		];
 
-		if (Base->IsA<UPluginDownloaderCustom>())
+		if (UPluginDownloaderCustom* Custom = Cast<UPluginDownloaderCustom>(Base))
 		{
 			DetailLayout.EditCategory("Settings", {}, ECategoryPriority::Uncommon)
 			.AddCustomRow(LOCTEXT("Refresh", "Refresh"))
@@ -75,12 +53,13 @@ public:
 			.ValueContent()
 			[
 				SNew(SButton)
+				.ToolTipText(LOCTEXT("RefreshTooltip", "Queries the github API to fill the dropdowns"))
 				.ContentPadding(2)
 				.VAlign(VAlign_Center)
 				.HAlign(HAlign_Center)
 				.OnClicked_Lambda([=]
 				{
-					Base->FillAutoComplete();
+					Custom->FillAutoComplete();
 
 					return FReply::Handled();
 				})
@@ -94,46 +73,6 @@ public:
 				]
 			];
 		}
-
-		DetailLayout.EditCategory("Output", {}, ECategoryPriority::Uncommon)
-		.AddCustomRow(LOCTEXT("Download", "Download"))
-		.NameContent()
-		[
-			SNew(STextBlock)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-			.Text_Lambda([=]
-			{
-				return Base->IsDownloading() ? LOCTEXT("Cancel", "Cancel") : LOCTEXT("Download", "Download");
-			})
-		]
-		.ValueContent()
-		[
-			SNew(SButton)
-			.ContentPadding(2)
-			.VAlign(VAlign_Center)
-			.HAlign(HAlign_Center)
-			.OnClicked_Lambda([=]
-			{
-				if (Base->IsDownloading())
-				{
-					Base->Cancel();
-				}
-				else
-				{
-					Base->Download();
-				}
-
-				return FReply::Handled();
-			})
-			[
-				SNew(STextBlock)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-				.Text_Lambda([=]
-				{
-					return Base->IsDownloading() ? LOCTEXT("Cancel", "Cancel") : LOCTEXT("Download", "Download");
-				})
-			]
-		];
 	}
 };
 
@@ -440,7 +379,6 @@ public:
 			[
 				SNew(SButton)
 				.ContentPadding(5)
-				.IsEnabled(true)
 				.ToolTip(SNew(SToolTip).Text(LOCTEXT("DownloadPluginEnabled", "Click here to open the Download Plugin dialog.")))
 				.TextStyle(FEditorStyle::Get(), "LargeText")
 				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
@@ -459,67 +397,8 @@ public:
 
 	TSharedRef<SDockTab> HandleDownloadPluginTab(const FSpawnTabArgs& SpawnTabArgs) const
 	{
-		UPluginDownloaderTokens* Tokens = GetMutableDefault<UPluginDownloaderTokens>();
-		Tokens->LoadFromConfig();
-		Tokens->CheckTokens();
-
-		UPluginDownloaderCustom* Custom = GetMutableDefault<UPluginDownloaderCustom>();
-		FUtilities::LoadConfig(Custom, "PluginDownloaderCustom");
-		Custom->FillAutoComplete();
-
 		TSharedRef<SDockTab> Tab = SNew(SDockTab).TabRole(NomadTab);
-		
-		FDetailsViewArgs Args;
-		Args.bHideSelectionTip = true;
-		Args.DefaultsOnlyVisibility = EEditDefaultsOnlyNodeVisibility::Hide;
-		Args.bAllowSearch = false;
-
-		FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
-		
-		const TSharedRef<IDetailsView> TokensDetailsView = PropertyModule.CreateDetailView(Args);
-		TokensDetailsView->SetObject(Tokens);
-
-		const TSharedRef<IDetailsView> DetailsView = PropertyModule.CreateDetailView(Args);
-
-		Tab->SetContent(
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			.Padding(0, 0, 5, 0)
-			[
-				SNew(SPluginList)
-				.OnInfoSelected_Lambda([=](const FRemotePluginInfo& RemoteInfo)
-				{
-					if (RemoteInfo.Name == "Custom")
-					{
-						DetailsView->SetObject(Custom);
-						return;
-					}
-
-					UPluginDownloaderRemote* Remote = GetMutableDefault<UPluginDownloaderRemote>();
-					Remote->Info = {};
-					Remote->Info.User = RemoteInfo.User;
-					Remote->Info.Repo = RemoteInfo.Repo;
-					Remote->Info.Branch = RemoteInfo.Branch;
-					DetailsView->SetObject(Remote);
-				})
-			]
-			+ SHorizontalBox::Slot()
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					TokensDetailsView
-				]
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				[
-					DetailsView
-				]
-			]
-		);
-
+		Tab->SetContent(SNew(SDownloadPlugin));
 		return Tab;
 	}
 };
