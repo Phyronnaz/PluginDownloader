@@ -18,14 +18,17 @@ void FUtilities::SaveConfig(UObject* Object, const FString& BaseSectionName, con
 		return;
 	}
 
-	UClass* Class = Object->GetClass();
+	const UClass* Class = Object->GetClass();
 	const UObject* CDO = Class->GetDefaultObject();
 
 	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
 	{
-		auto& Property = **It;
-		if (Property.HasAnyPropertyFlags(CPF_Transient)) continue;
-		if (!ensure(Property.ArrayDim == 1)) continue;
+		FProperty& Property = **It;
+		if (Property.HasAnyPropertyFlags(CPF_Transient) ||
+			!ensure(Property.ArrayDim == 1))
+		{
+			continue;
+		}
 
 		const FString Section = bAppendClassName ? BaseSectionName + TEXT(".") + Class->GetName() : BaseSectionName;
 
@@ -48,12 +51,15 @@ void FUtilities::LoadConfig(UObject* Object, const FString& BaseSectionName, con
 		return;
 	}
 
-	UClass* Class = Object->GetClass();
+	const UClass* Class = Object->GetClass();
 	for (TFieldIterator<FProperty> It(Class, EFieldIteratorFlags::IncludeSuper); It; ++It)
 	{
-		auto& Property = **It;
-		if (Property.HasAnyPropertyFlags(CPF_Transient)) continue;
-		if (!ensure(Property.ArrayDim == 1)) continue;
+		FProperty& Property = **It;
+		if (Property.HasAnyPropertyFlags(CPF_Transient) ||
+			!ensure(Property.ArrayDim == 1))
+		{
+			continue;
+		}
 		
 		const FString Section = bAppendClassName ? BaseSectionName + TEXT(".") + Class->GetName() : BaseSectionName;
 
