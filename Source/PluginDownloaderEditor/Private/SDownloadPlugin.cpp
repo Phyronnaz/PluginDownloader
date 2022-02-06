@@ -8,6 +8,7 @@
 #include "PropertyEditorModule.h"
 #include "Modules/ModuleManager.h"
 #include "Widgets/Input/SButton.h"
+#include "Launch/Resources/Version.h"
 
 #define LOCTEXT_NAMESPACE "PluginDownloader"
 
@@ -67,8 +68,11 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 				{
 					for (auto& It : RemoteInfo.Branches)
 					{
+						FString GithubBranch = It.Key;
+						GithubBranch.ReplaceInline(TEXT("{ENGINE_VERSION}"), VERSION_STRINGIFY(ENGINE_MAJOR_VERSION) TEXT(".") VERSION_STRINGIFY(ENGINE_MINOR_VERSION));
+
 						ensure(!Remote->BranchDisplayNameToName.Contains(It.Value));
-						Remote->BranchDisplayNameToName.Add(It.Value, It.Key);
+						Remote->BranchDisplayNameToName.Add(It.Value, GithubBranch);
 					}
 
 					RemoteInfo.Branches.GenerateValueArray(Remote->BranchOptions);
