@@ -69,7 +69,13 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 					for (auto& It : RemoteInfo.Branches)
 					{
 						FString GithubBranch = It.Key;
-						GithubBranch.ReplaceInline(TEXT("{ENGINE_VERSION}"), VERSION_STRINGIFY(ENGINE_MAJOR_VERSION) TEXT(".") VERSION_STRINGIFY(ENGINE_MINOR_VERSION));
+
+						FString VersionName = VERSION_STRINGIFY(ENGINE_MAJOR_VERSION) TEXT(".") VERSION_STRINGIFY(ENGINE_MINOR_VERSION);
+#if UE5_EA
+						VersionName = "5.0-early-access";
+#endif
+
+						GithubBranch.ReplaceInline(TEXT("{ENGINE_VERSION}"), *VersionName);
 
 						ensure(!Remote->BranchDisplayNameToName.Contains(It.Value));
 						Remote->BranchDisplayNameToName.Add(It.Value, GithubBranch);

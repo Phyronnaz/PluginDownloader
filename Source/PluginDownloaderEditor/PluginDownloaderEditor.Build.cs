@@ -38,5 +38,12 @@ public class PluginDownloaderEditor : ModuleRules
         {
 		    PublicSystemLibraries.Add("crypt32.lib");
         }
+
+        BuildVersion Version;
+        if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version) &&
+            Version.BranchName == "++UE5+Release-5.0-EarlyAccess")
+        {
+            PublicDefinitions.Add("UE5_EA=1");
+        }
     }
 }

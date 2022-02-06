@@ -505,7 +505,7 @@ void FPluginDownloader::OnComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr
 {
 	if (HttpResponse && HttpResponse->GetResponseCode() == EHttpResponseCodes::NotFound)
 	{
-		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Repository not found. Make sure you have a valid access token.\n\nURL: " + HttpResponse->GetURL()));
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Repository or branch not found. Make sure you have a valid access token.\nYour engine version might also not be supported by the plugin\n\nURL: " + HttpResponse->GetURL()));
 		return;
 	}
 
