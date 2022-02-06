@@ -26,6 +26,9 @@ public:
 	// Needs to have the REPO scope
 	UPROPERTY(EditAnywhere, Category = "Authentication", Transient)
 	FString GithubAccessToken;
+
+	UPROPERTY(VisibleAnywhere, Category = "Authentication", Transient)
+	FString GithubStatus;
 	
 	UPROPERTY()
 	FString GithubAccessToken_Encrypted;
@@ -34,7 +37,9 @@ public:
 	void LoadFromConfig();
 	void SaveToConfig();
 
-	void AddAuthToRequest(EPluginDownloaderHost Host, IHttpRequest& Request) const;
+	void CheckTokens();
+
+	bool AddAuthToRequest(EPluginDownloaderHost Host, IHttpRequest& Request, FString& OutError) const;
 
 protected:
 	//~ Begin UObject Interface
@@ -54,9 +59,6 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Settings")
 	FString User;
 	
-	UPROPERTY(EditAnywhere, Category = "Settings")
-	bool bIsOrganization = false;
-
 	UPROPERTY(EditAnywhere, Category = "Settings", meta = (GetOptions=RepoOptions))
 	FString Repo;
 
@@ -100,13 +102,14 @@ private:
 };
 
 DECLARE_DELEGATE_OneParam(FOnAutocompleteReceived, TArray<FString>);
+DECLARE_DELEGATE_OneParam(FOnResponseReceived, FString);
 
 class FPluginDownloader
 {
 public:
-	static TSharedRef<FPluginDownloaderDownload> DownloadPlugin(const FPluginDownloaderInfo& Info);
+	static TSharedPtr<FPluginDownloaderDownload> DownloadPlugin(const FPluginDownloaderInfo& Info);
 
-	static void GetRepoAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived);
+	static void GetRepoAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived, bool bIsOrganization = false);
 	static void GetBranchAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived);
 
 private:

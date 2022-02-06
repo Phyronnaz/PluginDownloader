@@ -135,48 +135,84 @@ class FPluginDownloaderTokensCustomization : public IDetailCustomization
 public:
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override
 	{
-		const TSharedRef<IPropertyHandle> AccessTokenHandle = DetailLayout.GetProperty("GithubAccessToken");
-		DetailLayout.EditDefaultProperty(AccessTokenHandle)->CustomWidget()
-		.NameContent()
-		[
-			AccessTokenHandle->CreatePropertyNameWidget()
-		]
-		.ValueContent()
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
+		TArray<TWeakObjectPtr<UObject>> Objects;
+		DetailLayout.GetObjectsBeingCustomized(Objects);
+		check(Objects.Num() == 1);
+		UPluginDownloaderTokens* Tokens = CastChecked<UPluginDownloaderTokens>(Objects[0].Get());
+
+		{
+			const TSharedRef<IPropertyHandle> Handle = DetailLayout.GetProperty("GithubAccessToken");
+			DetailLayout.EditDefaultProperty(Handle)->CustomWidget()
+			.NameContent()
+			[
+				Handle->CreatePropertyNameWidget()
+			]
+			.ValueContent()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.AutoWidth()
+				[
+					SNew(SBox)
+					.MinDesiredWidth(120)
+					[
+						Handle->CreatePropertyValueWidget()
+					]
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(2, 0)
+				.AutoWidth()
+				[
+					SNew(SButton)
+					.ContentPadding(2)
+					.VAlign(VAlign_Center)
+					.HAlign(HAlign_Center)
+					.OnClicked_Lambda([=]
+					{
+						FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
+						return FReply::Handled();
+					})
+					[
+						SNew(STextBlock)
+						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+						.ToolTipText(LOCTEXT("TokenTooltip", "Create a new token from your github account. Make sure to tick the REPO scope"))
+						.Text_Lambda([=]
+						{
+							return LOCTEXT("Create token", "Create token");
+						})
+					]
+				]
+			];
+		}
+
+		{
+			const TSharedRef<IPropertyHandle> Handle = DetailLayout.GetProperty("GithubStatus");
+
+			DetailLayout.EditDefaultProperty(Handle)->CustomWidget()
+			.NameContent()
+			[
+				Handle->CreatePropertyNameWidget()
+			]
+			.ValueContent()
+			.MinDesiredWidth(300)
+			.MaxDesiredWidth(300)
 			[
 				SNew(SBox)
-				.MinDesiredWidth(120)
-				[
-					AccessTokenHandle->CreatePropertyValueWidget()
-				]
-			]
-			+ SHorizontalBox::Slot()
-			.Padding(2, 0)
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.ContentPadding(2)
 				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.OnClicked_Lambda([=]
-				{
-					FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
-					return FReply::Handled();
-				})
 				[
 					SNew(STextBlock)
 					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.ToolTipText(LOCTEXT("TokenTooltip", "Create a new token from your github account. Make sure to tick the REPO scope"))
+					.ColorAndOpacity_Lambda([=]
+					{
+						return Tokens->GithubStatus.IsEmpty() ? FSlateColor::UseForeground() : FSlateColor(FColor::Red);
+					})
 					.Text_Lambda([=]
 					{
-						return LOCTEXT("Create token", "Create token");
+						return FText::FromString(Tokens->GithubStatus.IsEmpty() ? "Valid token" : Tokens->GithubStatus);
 					})
 				]
-			]
-		];
+			];
+		}
 	}
 };
 
@@ -368,6 +404,7 @@ public:
 	{
 		UPluginDownloaderTokens* Tokens = GetMutableDefault<UPluginDownloaderTokens>();
 		Tokens->LoadFromConfig();
+		Tokens->CheckTokens();
 
 		UPluginDownloaderCustom* Custom = GetMutableDefault<UPluginDownloaderCustom>();
 		FUtilities::LoadConfig(Custom, "PluginDownloaderCustom");

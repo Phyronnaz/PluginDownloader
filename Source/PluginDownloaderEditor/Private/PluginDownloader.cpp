@@ -40,14 +40,65 @@ void UPluginDownloaderTokens::SaveToConfig()
 	FUtilities::SaveConfig(this, "PluginDownloaderTokens");
 }
 
-void UPluginDownloaderTokens::AddAuthToRequest(EPluginDownloaderHost Host, IHttpRequest& Request) const
+void UPluginDownloaderTokens::CheckTokens()
+{
+	if (GithubAccessToken.IsEmpty())
+	{
+		GithubStatus.Reset();
+		return;
+	}
+
+	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
+	Request->SetURL("https://api.github.com/");
+	Request->SetVerb(TEXT("GET"));
+	Request->OnProcessRequestComplete().BindWeakLambda(this, [=](FHttpRequestPtr, FHttpResponsePtr HttpResponse, bool bSucceeded)
+	{
+		if (!bSucceeded)
+		{
+			GithubStatus = "Failed to query github.com";
+			return;
+		}
+
+		if (HttpResponse->GetResponseCode() != EHttpResponseCodes::Ok)
+		{
+			UE_LOG(LogPluginDownloader, Error, TEXT("Invalid token: %s"), *HttpResponse->GetContentAsString());
+			GithubStatus = "Invalid token";
+			return;
+		}
+
+		const FString Scope = HttpResponse->GetHeader("X-OAuth-Scopes");
+
+		TArray<FString> Scopes;
+		Scope.ParseIntoArray(Scopes, TEXT(","));
+		if (!Scopes.Contains("repo"))
+		{
+			GithubStatus = "Token needs to have the 'repo' scope";
+			return;
+		}
+
+		GithubStatus = {};
+	});
+	Request->SetHeader("Authorization", "token " + GithubAccessToken);
+	Request->ProcessRequest();
+}
+
+bool UPluginDownloaderTokens::AddAuthToRequest(EPluginDownloaderHost Host, IHttpRequest& Request, FString& OutError) const
 {
 	check(Host == EPluginDownloaderHost::Github);
+
+	if (!GithubStatus.IsEmpty())
+	{
+		ensure(!GithubAccessToken.IsEmpty());
+		OutError = GithubStatus;
+		return false;
+	}
 
 	if (!GithubAccessToken.IsEmpty())
 	{
 		Request.SetHeader("Authorization", "token " + GithubAccessToken);
 	}
+
+	return true;
 }
 
 void UPluginDownloaderTokens::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
@@ -55,6 +106,7 @@ void UPluginDownloaderTokens::PostEditChangeProperty(FPropertyChangedEvent& Prop
 	Super::PostEditChangeProperty(PropertyChangedEvent);
 
 	SaveToConfig();
+	CheckTokens();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -121,31 +173,39 @@ void FPluginDownloaderDownload::OnCompleteImpl(FHttpRequestPtr HttpRequest, FHtt
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-TSharedRef<FPluginDownloaderDownload> FPluginDownloader::DownloadPlugin(const FPluginDownloaderInfo& Info)
+TSharedPtr<FPluginDownloaderDownload> FPluginDownloader::DownloadPlugin(const FPluginDownloaderInfo& Info)
 {
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL(Info.GetURL());
 	Request->SetVerb(TEXT("GET"));
-	GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request);
+
+	FString Error;
+	if (!GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request, Error))
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Can't download: " + Error));
+		return nullptr;
+	}
 
 	const TSharedRef<FPluginDownloaderDownload> Download = MakeShareable(new FPluginDownloaderDownload(Request));
 	Download->Start();
 	return Download;
 }
 
-void FPluginDownloader::GetRepoAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived)
+void FPluginDownloader::GetRepoAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived, bool bIsOrganization)
 {
 	check(Info.Host == EPluginDownloaderHost::Github);
 
-	const FString Prefix = Info.bIsOrganization ? "orgs" : "users";
-
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
-	Request->SetURL("https://api.github.com" / Prefix / Info.User + "/repos?per_page=100");
+	Request->SetURL("https://api.github.com" / FString(bIsOrganization ? "orgs" : "users") / Info.User / "repos?per_page=100");
 	Request->SetVerb(TEXT("GET"));
 	Request->OnProcessRequestComplete().BindLambda([=](FHttpRequestPtr, FHttpResponsePtr HttpResponse, bool bSucceeded)
 	{
 		if (!bSucceeded || HttpResponse->GetResponseCode() != EHttpResponseCodes::Ok)
 		{
+			if (!bIsOrganization)
+			{
+				GetRepoAutocomplete(Info, OnAutocompleteReceived, true);
+			}
 			return;
 		}
 
@@ -176,8 +236,12 @@ void FPluginDownloader::GetRepoAutocomplete(const FPluginDownloaderInfo& Info, F
 
 		OnAutocompleteReceived.ExecuteIfBound(Result);
 	});
-	GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request);
-	Request->ProcessRequest();
+
+	FString Error;
+	if (GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request, Error))
+	{
+		Request->ProcessRequest();
+	}
 }
 
 void FPluginDownloader::GetBranchAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived)
@@ -221,8 +285,12 @@ void FPluginDownloader::GetBranchAutocomplete(const FPluginDownloaderInfo& Info,
 
 		OnAutocompleteReceived.ExecuteIfBound(Result);
 	});
-	GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request);
-	Request->ProcessRequest();
+
+	FString Error;
+	if (GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(Info.Host, *Request, Error))
+	{
+		Request->ProcessRequest();
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -466,6 +534,10 @@ void UPluginDownloaderBase::Download()
 {
 	ensure(!IsDownloading());
 	ActiveDownload = FPluginDownloader::DownloadPlugin(GetInfo());
+	if (!ActiveDownload)
+	{
+		return;
+	}
 
 	ActiveDownload->OnProgress.AddWeakLambda(this, [=]
 	{
