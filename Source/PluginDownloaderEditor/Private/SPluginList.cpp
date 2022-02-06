@@ -88,7 +88,7 @@ void SPluginList::Construct(const FArguments& Args)
 			
 			const TSharedRef<FPluginDownloaderRemotePluginInfo> CustomInfo = MakeShared<FRemotePluginInfo>();
 			CustomInfo->Name = "Custom";
-			CustomInfo->IconName = "Custom";
+			CustomInfo->Icon = "https://raw.githubusercontent.com/Phyronnaz/PluginDownloaderData/master/Icons/Custom.png";
 			ItemListCache.Items.Add(CustomInfo);
 
 			if (WeakThis.IsValid())
@@ -102,7 +102,7 @@ void SPluginList::Construct(const FArguments& Args)
 
 TSharedRef<ITableRow> SPluginList::OnGenerateRow(const TSharedRef<FRemotePluginInfo> Item, const TSharedRef<STableViewBase>& OwnerTable) const
 {
-	const TSharedRef<const FWebImage> Icon = WebImageCache.Download(Item->GetIconURL());
+	const TSharedRef<const FWebImage> Icon = WebImageCache.Download(Item->Icon);
 	
 	static FTextBlockStyle TextStyle = FEditorStyle::GetWidgetStyle<FTextBlockStyle>("NormalText");
 	TextStyle.Font.Size = 14;

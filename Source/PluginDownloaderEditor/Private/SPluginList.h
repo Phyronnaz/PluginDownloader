@@ -15,7 +15,7 @@ struct FPluginDownloaderRemotePluginInfo
 	FString Name;
 
 	UPROPERTY()
-	FString IconName;
+	FString Icon;
 
 	UPROPERTY()
 	FString User;
@@ -25,11 +25,6 @@ struct FPluginDownloaderRemotePluginInfo
 
 	UPROPERTY()
 	FString Branch;
-
-	FString GetIconURL() const
-	{
-		return "https://raw.githubusercontent.com/Phyronnaz/PluginDownloaderData/master/Icons" / IconName + ".png";
-	}
 };
 
 using FRemotePluginInfo = FPluginDownloaderRemotePluginInfo;
