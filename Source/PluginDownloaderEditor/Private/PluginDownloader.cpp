@@ -275,6 +275,33 @@ void FPluginDownloader::DownloadPlugin(const FPluginDownloaderInfo& Info)
 	GActivePluginDownload->Start();
 }
 
+void FPluginDownloader::CheckTempFolderSize()
+{
+	const FString PluginDownloaderDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectIntermediateDir() / "PluginDownloader");
+
+	int64 TotalSize = 0;
+
+	IFileManager& FileManager = IFileManager::Get();
+	FileManager.IterateDirectoryStatRecursively(*PluginDownloaderDir, [&](const TCHAR*, const FFileStatData& StatData)
+	{
+		TotalSize += StatData.FileSize;
+		return true;
+	});
+
+	if (TotalSize < 2e9)
+	{
+		return;
+	}
+
+	const FString Message = "The plugin downloader temporary folder is over 2GB. Do you want to clear it?\n\nThis will delete " + PluginDownloaderDir;
+	if (FMessageDialog::Open(EAppMsgType::YesNo, FText::FromString(Message)) != EAppReturnType::Yes)
+	{
+		return;
+	}
+
+	FileManager.DeleteDirectory(*PluginDownloaderDir, false, true);
+}
+
 void FPluginDownloader::GetRepoAutocomplete(const FPluginDownloaderInfo& Info, FOnAutocompleteReceived OnAutocompleteReceived, bool bIsOrganization)
 {
 	const UPluginDownloaderTokens* Tokens = GetDefault<UPluginDownloaderTokens>();

@@ -397,6 +397,8 @@ public:
 
 	TSharedRef<SDockTab> HandleDownloadPluginTab(const FSpawnTabArgs& SpawnTabArgs) const
 	{
+		FPluginDownloader::CheckTempFolderSize();
+
 		TSharedRef<SDockTab> Tab = SNew(SDockTab).TabRole(NomadTab);
 		Tab->SetContent(SNew(SDownloadPlugin));
 		return Tab;
