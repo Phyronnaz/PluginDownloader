@@ -2,8 +2,7 @@
 
 #pragma once
 
-#include "CoreMinimal.h"
-#include "Widgets/Views/SListView.h"
+#include "VoxelMinimal.h"
 #include "SPluginList.generated.h"
 
 USTRUCT()

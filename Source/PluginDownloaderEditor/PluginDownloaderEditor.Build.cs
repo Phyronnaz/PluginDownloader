@@ -8,7 +8,8 @@ public class PluginDownloaderEditor : ModuleRules
 {
     public PluginDownloaderEditor(ReadOnlyTargetRules Target) : base(Target)
     {
-        PCHUsage = PCHUsageMode.NoPCHs;
+        //PCHUsage = PCHUsageMode.NoPCHs;
+        PrivatePCHHeaderFile = "Private/VoxelMinimal.h";
         bUseUnity = false;
 
         PrivateIncludePaths.Add(Path.Combine(ModuleDirectory, "Private"));
@@ -32,6 +33,7 @@ public class PluginDownloaderEditor : ModuleRules
                 "JsonUtilities",
                 "ImageDownload",
                 "MediaAssets",
+                "UATHelper",
             });
 
         if (Target.Platform == UnrealTargetPlatform.Win64)
@@ -43,11 +45,7 @@ public class PluginDownloaderEditor : ModuleRules
         if (BuildVersion.TryRead(BuildVersion.GetDefaultFileName(), out Version) &&
             Version.BranchName == "++UE5+Release-5.0-EarlyAccess")
         {
-            PublicDefinitions.Add("UE5_EA=1");
-        }
-        else
-        {
-            PublicDefinitions.Add("UE5_EA=0");
+            PublicDefinitions.Add("IS_UE5_EA=1");
         }
     }
 }

@@ -1,13 +1,6 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
 #include "SPluginList.h"
-#include "HttpModule.h"
-#include "WebImageCache.h"
-#include "EditorStyleSet.h"
-#include "JsonObjectConverter.h"
-#include "Serialization/JsonReader.h"
-#include "Serialization/JsonSerializer.h"
-#include "Widgets/Images/SImage.h"
 
 FWebImageCache WebImageCache;
 

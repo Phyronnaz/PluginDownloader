@@ -3,12 +3,10 @@
 #include "SDownloadPlugin.h"
 #include "SPluginList.h"
 #include "PluginDownloader.h"
-#include "Utilities.h"
-#include "IDetailsView.h"
-#include "PropertyEditorModule.h"
-#include "Modules/ModuleManager.h"
-#include "Widgets/Input/SButton.h"
-#include "Launch/Resources/Version.h"
+#include "PluginDownloaderApi.h"
+#include "PluginDownloaderTokens.h"
+#include "PluginDownloaderDownload.h"
+#include "PluginDownloaderUtilities.h"
 
 #define LOCTEXT_NAMESPACE "PluginDownloader"
 
@@ -19,7 +17,7 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 	Tokens->CheckTokens();
 
 	UPluginDownloaderCustom* Custom = GetMutableDefault<UPluginDownloaderCustom>();
-	FUtilities::LoadConfig(Custom, "PluginDownloaderCustom");
+	FPluginDownloaderUtilities::LoadConfig(Custom, "PluginDownloaderCustom");
 	Custom->FillAutoComplete();
 		
 	FDetailsViewArgs DetailsViewArgs;
@@ -71,7 +69,7 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 						FString GithubBranch = It.Key;
 
 						FString VersionName = VERSION_STRINGIFY(ENGINE_MAJOR_VERSION) TEXT(".") VERSION_STRINGIFY(ENGINE_MINOR_VERSION);
-#if UE5_EA
+#if IS_UE5_EA
 						VersionName = "5.0-early-access";
 #endif
 
@@ -90,7 +88,7 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 				}
 				else
 				{
-					FPluginDownloader::GetBranchAndTagAutocomplete(Remote->Info, FOnAutocompleteReceived::CreateWeakLambda(Remote, [=](const TArray<FString>& Result)
+					FPluginDownloaderApi::GetBranchAndTagAutocomplete(Remote->Info, FOnAutocompleteReceived::CreateWeakLambda(Remote, [=](const TArray<FString>& Result)
 					{
 						Remote->BranchOptions = Result;
 					}));
@@ -130,10 +128,6 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 						{
 							return LOCTEXT("SelectTooltip", "You need to select a plugin to download");
 						}
-						if (!GetDefault<UPluginDownloaderTokens>()->HasValidToken())
-						{
-							return LOCTEXT("InvalidTokenTooltip", "Your github token is invalid");
-						}
 						return LOCTEXT("DownloadPluginTip", "Download this plugin");
 					})
 					.TextStyle(FEditorStyle::Get(), "LargeText")
@@ -142,11 +136,11 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 					.Text(LOCTEXT("DownloadPluginLabel", "Download Plugin"))
 					.IsEnabled_Lambda([=]
 					{
-						return Downloader != nullptr && GetDefault<UPluginDownloaderTokens>()->HasValidToken();
+						return Downloader != nullptr;
 					})
 					.OnClicked_Lambda([=]
 					{
-						FPluginDownloader::DownloadPlugin(Downloader->GetInfo());
+						FPluginDownloaderDownload::StartDownload(Downloader->GetInfo());
 						return FReply::Handled();
 					})
 				]

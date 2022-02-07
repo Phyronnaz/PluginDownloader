@@ -1,237 +1,15 @@
 // Copyright Voxel Plugin, Inc. All Rights Reserved.
 
-#include "Utilities.h"
-#include "SVideoPlayer.h"
+#include "VoxelMinimal.h"
 #include "SDownloadPlugin.h"
 #include "PluginDownloader.h"
+#include "PluginDownloaderTokens.h"
+#include "PluginDownloaderUtilities.h"
+#include "PluginDownloaderCustomization.h"
 
-#include "DetailWidgetRow.h"
-#include "DetailLayoutBuilder.h"
-#include "DetailCategoryBuilder.h"
-#include "IDetailCustomization.h"
-#include "Widgets/SToolTip.h"
-#include "Widgets/Input/SButton.h"
-#include "Widgets/Text/STextBlock.h"
-#include "Widgets/Docking/SDockTab.h"
-#include "Widgets/Layout/SSplitter.h"
-
-#include "HttpModule.h"
-#include "HttpManager.h"
-#include "UnrealEdMisc.h"
-#include "FileMediaSource.h"
-#include "Misc/ConfigCacheIni.h"
-#include "Modules/ModuleManager.h"
-#include "Modules/ModuleInterface.h"
 #include "HTTP/Private/HttpThread.h"
-#include "Interfaces/IPluginManager.h"
 
 #define LOCTEXT_NAMESPACE "PluginDownloader"
-
-class FPluginDownloaderBaseCustomization : public IDetailCustomization
-{
-public:
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override
-	{
-		TArray<TWeakObjectPtr<UObject>> Objects;
-		DetailLayout.GetObjectsBeingCustomized(Objects);
-		check(Objects.Num() == 1);
-		UPluginDownloaderBase* Base = CastChecked<UPluginDownloaderBase>(Objects[0].Get());
-
-		if (UPluginDownloaderCustom* Custom = Cast<UPluginDownloaderCustom>(Base))
-		{
-			DetailLayout.EditCategory("Settings", {}, ECategoryPriority::Uncommon)
-			.AddCustomRow(LOCTEXT("Refresh", "Refresh"))
-			.NameContent()
-			[
-				SNew(STextBlock)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-				.Text_Lambda([=]
-				{
-					return LOCTEXT("Refresh", "Refresh");
-				})
-			]
-			.ValueContent()
-			[
-				SNew(SButton)
-				.ToolTipText(LOCTEXT("RefreshTooltip", "Queries the github API to fill the dropdowns"))
-				.ContentPadding(2)
-				.VAlign(VAlign_Center)
-				.HAlign(HAlign_Center)
-				.OnClicked_Lambda([=]
-				{
-					Custom->FillAutoComplete();
-
-					return FReply::Handled();
-				})
-				[
-					SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.Text_Lambda([=]
-					{
-						return LOCTEXT("Refresh", "Refresh");
-					})
-				]
-			];
-		}
-	}
-};
-
-class FPluginDownloaderTokensCustomization : public IDetailCustomization
-{
-public:
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailLayout) override
-	{
-		TArray<TWeakObjectPtr<UObject>> Objects;
-		DetailLayout.GetObjectsBeingCustomized(Objects);
-		check(Objects.Num() == 1);
-		UPluginDownloaderTokens* Tokens = CastChecked<UPluginDownloaderTokens>(Objects[0].Get());
-
-		{
-			const TSharedRef<IPropertyHandle> Handle = DetailLayout.GetProperty("GithubAccessToken");
-			DetailLayout.EditDefaultProperty(Handle)->CustomWidget()
-			.NameContent()
-			[
-				Handle->CreatePropertyNameWidget()
-			]
-			.ValueContent()
-			[
-				SNew(SHorizontalBox)
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				[
-					SNew(SBox)
-					.MinDesiredWidth(120)
-					[
-						Handle->CreatePropertyValueWidget()
-					]
-				]
-				+ SHorizontalBox::Slot()
-				.Padding(2, 0)
-				.AutoWidth()
-				[
-					SNew(SButton)
-					.ContentPadding(2)
-					.VAlign(VAlign_Center)
-					.HAlign(HAlign_Center)
-					.OnClicked_Lambda([=]
-					{
-						UFileMediaSource* MediaSource = NewObject<UFileMediaSource>();
-						MediaSource->FilePath = IPluginManager::Get().FindPlugin("PluginDownloader")->GetContentDir() / "HowToCreateToken.mp4";
-
-						const TSharedRef<SWindow> Window =
-							SNew(SWindow)
-							.Title(LOCTEXT("CreateTokenHowTo", "How to create a new token"))
-							.ClientSize(FVector2D(1280, 720))
-							.IsTopmostWindow(true);
-
-						Window->SetContent(
-							SNew(SVerticalBox)
-							+ SVerticalBox::Slot()
-							.FillHeight(1)
-							[
-								SNew(SVideoPlayer)
-								.Source(MediaSource)
-								.Size(FVector2D(1580, 826))
-							]
-							+ SVerticalBox::Slot()
-							.AutoHeight()
-							.Padding(0, 5)
-							[
-								SNew(SBox)
-								.HAlign(HAlign_Center)
-								[
-									SNew(SButton)
-									.ContentPadding(5)
-									.IsEnabled(true)
-									.ToolTip(SNew(SToolTip).Text(LOCTEXT("OpenBrowswer", "Click here to open github in your web browser")))
-									.TextStyle(FEditorStyle::Get(), "LargeText")
-									.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-									.HAlign(HAlign_Center)
-									.Text(LOCTEXT("OpenGithub", "Open Github"))
-									.OnClicked_Lambda([=]
-									{
-										FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
-										return FReply::Handled();
-									})
-								]
-							]
-						);
-
-						FSlateApplication::Get().AddWindow(Window);
-
-						return FReply::Handled();
-					})
-					[
-						SNew(STextBlock)
-						.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-						.ToolTipText(LOCTEXT("TokenTooltip", "Create a new token from your github account. Make sure to tick the REPO scope"))
-						.Text_Lambda([=]
-						{
-							return LOCTEXT("Create token", "Create token");
-						})
-					]
-				]
-			];
-		}
-
-		{
-			const TSharedRef<IPropertyHandle> Handle = DetailLayout.GetProperty("GithubStatus");
-
-			DetailLayout.EditDefaultProperty(Handle)->CustomWidget()
-			.NameContent()
-			[
-				Handle->CreatePropertyNameWidget()
-			]
-			.ValueContent()
-			.MinDesiredWidth(300)
-			.MaxDesiredWidth(300)
-			[
-				SNew(SBox)
-				.VAlign(VAlign_Center)
-				[
-					SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
-					.ColorAndOpacity_Lambda([=]
-					{
-						return Tokens->GithubStatus.IsEmpty()
-							? Tokens->GithubAccessToken.IsEmpty()
-							? FSlateColor(FColor::Orange)
-							: FSlateColor::UseForeground()
-							: FSlateColor(FColor::Red);
-					})
-					.Text_Lambda([=]
-					{
-						return FText::FromString(Tokens->GithubStatus.IsEmpty()
-							? Tokens->GithubAccessToken.IsEmpty()
-							? "Empty token"
-							: "Valid token"
-							: Tokens->GithubStatus);
-					})
-				]
-			];
-		}
-	}
-};
-
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-struct FTabSpawnerEntryHack : public FWorkspaceItem
-{
-	FName TabType;
-	FOnSpawnTab OnSpawnTab;
-	FCanSpawnTab CanSpawnTab;
-	/** When this method is not provided, we assume that the tab should only allow 0 or 1 instances */
-	FOnFindTabToReuse OnFindTabToReuse;
-	/** Whether this menu item should be enabled, disabled, or hidden */
-	TAttribute<ETabSpawnerMenuType::Type> MenuType;
-	/** Whether to automatically generate a menu entry for this tab spawner */
-	bool bAutoGenerateMenuEntry;
-
-	TWeakPtr<SDockTab> SpawnedTabPtr;
-};
-static_assert(sizeof(FTabSpawnerEntryHack) == sizeof(FTabSpawnerEntry), "");
 
 class FPluginDownloaderEditorModule : public IModuleInterface
 {
@@ -275,9 +53,9 @@ public:
 		{
 			FPropertyEditorModule& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
 
-			PropertyModule.RegisterCustomClassLayout(UPluginDownloaderBase::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateLambda([]
+			PropertyModule.RegisterCustomClassLayout(UPluginDownloaderCustom::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateLambda([]
 			{
-				return MakeShared<FPluginDownloaderBaseCustomization>();
+				return MakeShared<FPluginDownloaderCustomCustomization>();
 			}));
 			
 			PropertyModule.RegisterCustomClassLayout(UPluginDownloaderTokens::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateLambda([]
@@ -285,6 +63,15 @@ public:
 				return MakeShared<FPluginDownloaderTokensCustomization>();
 			}));
 		}
+
+		// Register Download Plugin tab
+		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
+			DownloadPluginTabId,
+			FOnSpawnTab::CreateRaw(this, &FPluginDownloaderEditorModule::HandleDownloadPluginTab))
+			.SetDisplayName(LOCTEXT("Download PluginTabHeader", "Download Plugin"))
+			.SetMenuType(ETabSpawnerMenuType::Hidden);
+
+		// Hook into the plugin manager window
 
 		struct FTabManagerAccessor : FGlobalTabmanager
 		{
@@ -299,6 +86,22 @@ public:
 			return;
 		}
 
+		struct FTabSpawnerEntryHack : public FWorkspaceItem
+		{
+			FName TabType;
+			FOnSpawnTab OnSpawnTab;
+			FCanSpawnTab CanSpawnTab;
+			/** When this method is not provided, we assume that the tab should only allow 0 or 1 instances */
+			FOnFindTabToReuse OnFindTabToReuse;
+			/** Whether this menu item should be enabled, disabled, or hidden */
+			TAttribute<ETabSpawnerMenuType::Type> MenuType;
+			/** Whether to automatically generate a menu entry for this tab spawner */
+			bool bAutoGenerateMenuEntry;
+
+			TWeakPtr<SDockTab> SpawnedTabPtr;
+		};
+		static_assert(sizeof(FTabSpawnerEntryHack) == sizeof(FTabSpawnerEntry), "");
+		
 		OnSpawnTab = reinterpret_cast<FTabSpawnerEntryHack&>(*TabSpawner).OnSpawnTab;
 
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(TabId);
@@ -306,12 +109,6 @@ public:
 			.SetDisplayName(TabSpawner->GetDisplayName())
 			.SetTooltipText(TabSpawner->GetTooltipText())
 			.SetIcon(TabSpawner->GetIcon());
-
-		FGlobalTabmanager::Get()->RegisterNomadTabSpawner(
-			DownloadPluginTabId,
-			FOnSpawnTab::CreateRaw(this, &FPluginDownloaderEditorModule::HandleDownloadPluginTab))
-			.SetDisplayName(LOCTEXT("Download PluginTabHeader", "Download Plugin"))
-			.SetMenuType(ETabSpawnerMenuType::Hidden);
 	}
 
 	template<typename T>
@@ -397,7 +194,7 @@ public:
 
 	TSharedRef<SDockTab> HandleDownloadPluginTab(const FSpawnTabArgs& SpawnTabArgs) const
 	{
-		FPluginDownloader::CheckTempFolderSize();
+		FPluginDownloaderUtilities::CheckTempFolderSize();
 
 		TSharedRef<SDockTab> Tab = SNew(SDockTab).TabRole(NomadTab);
 		Tab->SetContent(SNew(SDownloadPlugin));

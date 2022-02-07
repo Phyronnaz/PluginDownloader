@@ -3,9 +3,6 @@
 #include "SVideoPlayer.h"
 #include "MediaPlayer.h"
 #include "MediaTexture.h"
-#include "Widgets/Images/SImage.h"
-#include "Widgets/Layout/SScaleBox.h"
-#include "Materials/MaterialInstanceDynamic.h"
 
 void SVideoPlayer::Construct(const FArguments& Args)
 {
