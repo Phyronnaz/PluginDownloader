@@ -4,9 +4,14 @@
 #include "PluginDownloaderUtilities.h"
 #include "PluginDownloader.h"
 
+static FString GetGithubTokenPath()
+{
+	return FPluginDownloaderUtilities::GetAppData() / "UnrealEngine" / "PluginDownloader" / "GithubToken.txt";
+}
+
 void UPluginDownloaderTokens::LoadFromConfig()
 {
-	FPluginDownloaderUtilities::LoadConfig(this, "PluginDownloaderTokens");
+	ensure(FFileHelper::LoadFileToString(GithubAccessToken_Encrypted, *GetGithubTokenPath()));
 
 	GithubAccessToken = FPluginDownloaderUtilities::DecryptData(GithubAccessToken_Encrypted);
 }
@@ -15,7 +20,7 @@ void UPluginDownloaderTokens::SaveToConfig()
 {
 	GithubAccessToken_Encrypted = FPluginDownloaderUtilities::EncryptData(GithubAccessToken);
 
-	FPluginDownloaderUtilities::SaveConfig(this, "PluginDownloaderTokens");
+	ensure(FFileHelper::SaveStringToFile(GithubAccessToken_Encrypted, *GetGithubTokenPath()));
 }
 
 void UPluginDownloaderTokens::CheckTokens()

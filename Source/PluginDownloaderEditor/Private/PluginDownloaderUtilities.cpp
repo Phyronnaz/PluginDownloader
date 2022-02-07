@@ -5,6 +5,7 @@
 #if PLATFORM_WINDOWS
 #include "Windows/AllowWindowsPlatformTypes.h"
 #include "dpapi.h"
+#include "shlobj_core.h"
 #include "processthreadsapi.h"
 #include "Windows/HideWindowsPlatformTypes.h"
 #endif
@@ -192,6 +193,18 @@ bool FPluginDownloaderUtilities::ExecuteDetachedBatch(const FString& BatchFile)
 #else
 	ensure(false);
 	return false;
+#endif
+}
+
+FString FPluginDownloaderUtilities::GetAppData()
+{
+#if PLATFORM_WINDOWS
+	TCHAR LocalAppDataPath[MAX_PATH];
+	SHGetFolderPath(0, CSIDL_LOCAL_APPDATA, NULL, 0, LocalAppDataPath);
+	return LocalAppDataPath;
+#else
+	ensure(false);
+	return {};
 #endif
 }
 

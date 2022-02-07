@@ -16,6 +16,7 @@ struct FPluginDownloaderUtilities
 	static FString DecryptData(const FString& Data);
 
 	static bool ExecuteDetachedBatch(const FString& BatchFile);
+	static FString GetAppData();
 
 	static FString GetIntermediateDir();
 	static void CheckTempFolderSize();
