@@ -216,8 +216,12 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	
 	const FString InstallDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectPluginsDir()) / RepoName;
 	const FString TrashDir = IntermediateDir / "Trash" / PluginName + "_" + Timestamp;
-	const FString DownloadDir = IntermediateDir / "Downloads" / PluginName + "_" + Timestamp;
-	const FString PackagedDir = IntermediateDir / "Packaged" / PluginName + "_" + Timestamp;
+	const FString DownloadDir = IntermediateDir / "Download";
+	const FString PackagedDir = IntermediateDir / "Packaged";
+
+	// Delete download/packaged directories left over from previous installs
+	IFileManager::Get().DeleteDirectory(*DownloadDir, false, true);
+	IFileManager::Get().DeleteDirectory(*PackagedDir, false, true);
 
 	const FString BatchFile = IntermediateDir / "InstallPlugin.bat";
 	const FString RestartBatchFile = IntermediateDir / "RestartEngine.bat";
