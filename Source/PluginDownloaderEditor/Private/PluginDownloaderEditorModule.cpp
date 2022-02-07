@@ -143,11 +143,11 @@ public:
 									SNew(SButton)
 									.ContentPadding(5)
 									.IsEnabled(true)
-									.ToolTip(SNew(SToolTip).Text(LOCTEXT("OpenBrowswer", "Click here to open the web browser")))
+									.ToolTip(SNew(SToolTip).Text(LOCTEXT("OpenBrowswer", "Click here to open github in your web browser")))
 									.TextStyle(FEditorStyle::Get(), "LargeText")
 									.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
 									.HAlign(HAlign_Center)
-									.Text(LOCTEXT("OpenWebBrowser", "Open Web Browser"))
+									.Text(LOCTEXT("OpenGithub", "Open Github"))
 									.OnClicked_Lambda([=]
 									{
 										FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
