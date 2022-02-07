@@ -45,5 +45,9 @@ public class PluginDownloaderEditor : ModuleRules
         {
             PublicDefinitions.Add("UE5_EA=1");
         }
+        else
+        {
+            PublicDefinitions.Add("UE5_EA=0");
+        }
     }
 }
