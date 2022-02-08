@@ -5,6 +5,18 @@
 #include "VoxelMinimal.h"
 #include "PluginDownloaderInfo.generated.h"
 
+UENUM()
+enum class EPluginDownloadInstallLocation
+{
+	// Will only be accessible by the current project
+	// Highly recommended
+	Project,
+	// Will install the plugin engine wide
+	// Will require administrator access
+	// Not recommended
+	Engine
+};
+
 USTRUCT()
 struct FPluginDownloaderInfo
 {
@@ -18,4 +30,7 @@ struct FPluginDownloaderInfo
 
 	UPROPERTY(EditAnywhere, Category = "Settings", meta = (GetOptions=BranchOptions))
 	FString Branch;
+
+	UPROPERTY(EditAnywhere, Category = "Settings")
+	EPluginDownloadInstallLocation InstallLocation = EPluginDownloadInstallLocation::Project;
 };

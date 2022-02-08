@@ -199,11 +199,75 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	const FString PluginName = FPaths::GetBaseFilename(UPlugin);
 	const FString RepoName = Info.Repo;
 
-	FString ExistingPluginDir;
-	TSharedPtr<IPlugin> ExistingPlugin = IPluginManager::Get().FindPlugin(PluginName);
-	if (ExistingPlugin)
+	// Manually find uplugin files to handle cases where a plugin is installed both in the project and in engine
+
+	TArray<FString> ExistingPluginsDir;
 	{
-		ExistingPluginDir = FPaths::ConvertRelativePathToFull(ExistingPlugin->GetBaseDir());
+		const FString UPluginFilename = FPaths::GetCleanFilename(UPlugin);
+
+		TArray<FString> PluginRoots;
+		PluginRoots.Add(FPaths::EnginePluginsDir());
+		PluginRoots.Add(FPaths::ProjectPluginsDir());
+
+		TArray<FString> PluginPaths;
+		for (const FString& PluginRoot : PluginRoots)
+		{
+			IFileManager::Get().IterateDirectoryRecursively(*PluginRoot, [&](const TCHAR* FilenameOrDirectory, bool bIsDirectory)
+			{
+				if (!bIsDirectory && FPaths::GetCleanFilename(FilenameOrDirectory) == UPluginFilename)
+				{
+					PluginPaths.Add(FPaths::GetPath(FPaths::ConvertRelativePathToFull(FilenameOrDirectory)));
+				}
+				return true;
+			});
+		}
+
+		for (const FString& PluginPath : PluginPaths)
+		{
+			if (FPaths::IsUnderDirectory(PluginPath, FPaths::EnginePluginsDir()))
+			{
+				if (Info.InstallLocation == EPluginDownloadInstallLocation::Engine)
+				{
+					ExistingPluginsDir.Add(PluginPath);
+				}
+				else
+				{
+					ensure(Info.InstallLocation == EPluginDownloadInstallLocation::Project);
+					// Nothing to do - project plugins overriden engine ones
+				}
+			}
+			else
+			{
+				ensure(FPaths::IsUnderDirectory(PluginPath, FPaths::ProjectPluginsDir()));
+				if (Info.InstallLocation == EPluginDownloadInstallLocation::Engine)
+				{
+					const FString Message =
+						"Installing plugin in engine, but there's already a project plugin with the same name.\n"
+						"Delete the project plugin to use the engine plugin\n\n"
+						"Path: " + PluginPath;
+
+					FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Message));
+				}
+				else
+				{
+					ensure(Info.InstallLocation == EPluginDownloadInstallLocation::Project);
+					ExistingPluginsDir.Add(PluginPath);
+				}
+			}
+		}
+	}
+
+	FString ExistingPluginDir;
+	if (ExistingPluginsDir.Num() > 0)
+	{
+		if (ExistingPluginsDir.Num() > 1)
+		{
+			return Destroy("Multiple plugins with the same name found:\n\n" + FString::Join(ExistingPluginsDir, TEXT("\n")));
+		}
+
+		ExistingPluginDir = ExistingPluginsDir[0];
+
+		FString Path = ExistingPluginsDir[0];
 		const FString Message = "There is already a " + PluginName + ".uplugin in " + ExistingPluginDir + ". Do you want to delete it?";
 		if (FMessageDialog::Open(EAppMsgType::YesNo, FText::FromString(Message)) != EAppReturnType::Yes)
 		{
@@ -213,8 +277,12 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 
 	const FString Timestamp = FDateTime::Now().ToString();
 	const FString IntermediateDir = FPluginDownloaderUtilities::GetIntermediateDir();
-	
-	const FString InstallDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectPluginsDir()) / RepoName;
+
+	const FString InstallDir = FPaths::ConvertRelativePathToFull(
+		Info.InstallLocation == EPluginDownloadInstallLocation::Project
+		? FPaths::ProjectPluginsDir() / RepoName
+		: FPaths::EnginePluginsDir() / "Marketplace" / RepoName);
+
 	const FString TrashDir = IntermediateDir / "Trash" / PluginName + "_" + Timestamp;
 	const FString DownloadDir = IntermediateDir / "Download";
 	const FString PackagedDir = IntermediateDir / "Packaged";
@@ -226,6 +294,7 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	const FString BatchFile = IntermediateDir / "InstallPlugin.bat";
 	const FString RestartBatchFile = IntermediateDir / "RestartEngine.bat";
 	const FString PluginBatchFile = IntermediateDir / "InstallPlugin_" + PluginName + ".bat";
+	const FString PluginAdminBatchFile = IntermediateDir / "InstallPlugin_" + PluginName + "_Admin.bat";
 
 	const FString UPluginFullPath = DownloadDir / FPaths::GetCleanFilename(UPlugin);
 
@@ -252,7 +321,8 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 
 	// InstallPlugin_XXXX.bat: calls InstallPlugin.bat with the right parameters
 	{
-		const FString PluginBatch = FString::Printf(TEXT("start InstallPlugin.bat %u \"%s\" \"%s\" \"%s\" \"%s\" %s"),
+		FString Batch = "cd /D \"" + IntermediateDir + "\"\r\n";
+		Batch += FString::Printf(TEXT("start InstallPlugin.bat %u \"%s\" \"%s\" \"%s\" \"%s\" %s"),
 			FPlatformProcess::GetCurrentProcessId(),
 			*ExistingPluginDir,
 			*TrashDir,
@@ -260,21 +330,31 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 			*InstallDir,
 			*RepoName);
 
-		if (!FFileHelper::SaveStringToFile(PluginBatch, *PluginBatchFile))
+		if (!FFileHelper::SaveStringToFile(Batch, *PluginBatchFile))
 		{
 			return Destroy("Failed to write " + PluginBatchFile);
 		}
 	}
 
+	// InstallPlugin_XXXX_Admin.bat: calls InstallPlugin_XXXX.bat as administrator
+	{
+		const FString Batch = "powershell Start -File InstallPlugin_" + PluginName + ".bat -Verb RunAs";
+
+		if (!FFileHelper::SaveStringToFile(Batch, *PluginAdminBatchFile))
+		{
+			return Destroy("Failed to write " + PluginAdminBatchFile);
+		}
+	}
+
 	// RestartEngine.bat: restarts the engine with the same parameters
 	{
-		FString RestartBatch = "start \"";
-		RestartBatch += FPlatformProcess::ExecutablePath();
-		RestartBatch += "\" ";
-		RestartBatch += FCommandLine::GetOriginal();
-		RestartBatch += "\r\nexit";
+		FString Batch = "start \"";
+		Batch += FPlatformProcess::ExecutablePath();
+		Batch += "\" ";
+		Batch += FCommandLine::GetOriginal();
+		Batch += "\r\nexit";
 
-		if (!FFileHelper::SaveStringToFile(RestartBatch, *RestartBatchFile))
+		if (!FFileHelper::SaveStringToFile(Batch, *RestartBatchFile))
 		{
 			return Destroy("Failed to write " + RestartBatchFile);
 		}
@@ -291,7 +371,8 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	}
 
 	// Don't compile targets for project plugins as it takes forever
-	const bool bOnlyCompileEditor = true;
+	const bool bOnlyCompileEditor = Info.InstallLocation == EPluginDownloadInstallLocation::Project;
+
 	const FString UatCommandLine = FString::Printf(TEXT("BuildPlugin %s -Plugin=\"%s\" -Package=\"%s\" -VS2019"), bOnlyCompileEditor ? TEXT("-NoTargetPlatforms") : TEXT(""), * UPluginFullPath, *PackagedDir);
 
 	IUATHelperModule::Get().CreateUatTask(
@@ -305,12 +386,12 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 		// Is called from an async thread
 		AsyncTask(ENamedThreads::GameThread, [=]
 		{
-			OnPackageComplete(Result, PluginBatchFile);
+			OnPackageComplete(Result, PluginBatchFile, PluginAdminBatchFile);
 		});
 	});
 }
 
-void FPluginDownloaderDownload::OnPackageComplete(const FString& Result, const FString& PluginBatchFile)
+void FPluginDownloaderDownload::OnPackageComplete(const FString& Result, const FString& PluginBatchFile, const FString& PluginAdminBatchFile)
 {
 	ensure(GActivePluginDownloaderDownload == this);
 	check(IsInGameThread());
@@ -328,7 +409,13 @@ void FPluginDownloaderDownload::OnPackageComplete(const FString& Result, const F
 		}
 	}
 
-	if (!FPluginDownloaderUtilities::ExecuteDetachedBatch(PluginBatchFile))
+	const FString BatchFile = Info.InstallLocation == EPluginDownloadInstallLocation::Project ? PluginBatchFile : PluginAdminBatchFile;
+	if (Info.InstallLocation == EPluginDownloadInstallLocation::Engine)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Administrator rights will be asked to install the plugin in engine"));
+	}
+
+	if (!FPluginDownloaderUtilities::ExecuteDetachedBatch(BatchFile))
 	{
 		return Destroy("Failed to execute bat file");
 	}

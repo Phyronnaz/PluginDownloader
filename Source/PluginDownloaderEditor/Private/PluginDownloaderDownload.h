@@ -29,5 +29,5 @@ private:
 
 	void OnRequestProgress(FHttpRequestPtr HttpRequest, int32 BytesSent, int32 BytesReceived);
 	void OnRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
-	void OnPackageComplete(const FString& Result, const FString& PluginBatchFile);
+	void OnPackageComplete(const FString& Result, const FString& PluginBatchFile, const FString& PluginAdminBatchFile);
 };

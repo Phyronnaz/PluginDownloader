@@ -27,6 +27,9 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Settings", meta = (GetOptions=BranchOptions))
 	FString Branch;
 
+	UPROPERTY(EditAnywhere, Category = "Settings")
+	EPluginDownloadInstallLocation InstallLocation = EPluginDownloadInstallLocation::Project;
+
 	UPROPERTY(Transient)
 	TArray<FString> BranchOptions;
 
@@ -37,6 +40,7 @@ public:
 	{
 		FPluginDownloaderInfo FullInfo = Info;
 		FullInfo.Branch = BranchDisplayNameToName.Contains(Branch) ? BranchDisplayNameToName[Branch] : Branch;
+		FullInfo.InstallLocation = InstallLocation;
 		return FullInfo;
 	}
 };
