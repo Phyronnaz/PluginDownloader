@@ -96,7 +96,7 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 					const TSharedRef<SWindow> Window =
 						SNew(SWindow)
 						.Title(LOCTEXT("CreateTokenHowTo", "How to create a new token"))
-						.ClientSize(FVector2D(1280, 720))
+						.ClientSize(FVector2D(1280, 760))
 						.IsTopmostWindow(true);
 
 					Window->SetContent(
@@ -106,7 +106,7 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 						[
 							SNew(SVideoPlayer)
 							.Source(MediaSource)
-							.Size(FVector2D(1580, 826))
+							.Size(FVector2D(1920, 1080))
 						]
 						+ SVerticalBox::Slot()
 						.AutoHeight()
