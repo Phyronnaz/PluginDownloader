@@ -6,7 +6,6 @@
 #include "Async/Async.h"
 #include "CoreGlobals.h"
 #include "UnrealEdMisc.h"
-#include "WebImageCache.h"
 #include "EditorStyleSet.h"
 #include "HAL/FileManager.h"
 #include "IUATHelperModule.h"

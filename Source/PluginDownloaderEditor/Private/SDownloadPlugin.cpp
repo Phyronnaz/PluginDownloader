@@ -91,6 +91,12 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 					FPluginDownloaderApi::GetBranchAndTagAutocomplete(Remote->Info, FOnAutocompleteReceived::CreateWeakLambda(Remote, [=](const TArray<FString>& Result)
 					{
 						Remote->BranchOptions = Result;
+
+						if (!Remote->BranchOptions.Contains(Remote->Branch) &&
+							Remote->BranchOptions.Num() > 0)
+						{
+							Remote->Branch = Remote->BranchOptions[0];
+						}
 					}));
 				}
 

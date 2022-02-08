@@ -31,7 +31,6 @@ public class PluginDownloaderEditor : ModuleRules
                 "HTTP",
                 "Json",
                 "JsonUtilities",
-                "ImageDownload",
                 "MediaAssets",
                 "UATHelper",
             });

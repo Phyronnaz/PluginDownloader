@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
 #include "SPluginList.h"
+#include "ImageDownload/WebImageCache.h"
 
 FWebImageCache WebImageCache;
 
