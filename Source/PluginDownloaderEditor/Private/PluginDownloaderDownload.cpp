@@ -348,7 +348,11 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 
 	// RestartEngine.bat: restarts the engine with the same parameters
 	{
-		FString Batch = "start \"";
+		FString Batch;
+		Batch += "cd \"";
+		Batch += FPlatformProcess::GetCurrentWorkingDirectory();
+		Batch += "\"\r\n";
+		Batch += "start \"";
 		Batch += FPlatformProcess::ExecutablePath();
 		Batch += "\" ";
 		Batch += FCommandLine::GetOriginal();
