@@ -31,3 +31,5 @@ private:
 	void OnRequestComplete(FHttpRequestPtr HttpRequest, FHttpResponsePtr HttpResponse, bool bSucceeded);
 	void OnPackageComplete(const FString& Result, const FString& PluginBatchFile, const FString& PluginAdminBatchFile);
 };
+
+extern FPluginDownloaderDownload* GActivePluginDownloaderDownload;

@@ -134,6 +134,10 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 						{
 							return LOCTEXT("SelectTooltip", "You need to select a plugin to download");
 						}
+						if (GActivePluginDownloaderDownload)
+						{
+							return LOCTEXT("DownloadInProgressTooltip", "Download already in progress");
+						}
 						return LOCTEXT("DownloadPluginTip", "Download this plugin");
 					})
 					.TextStyle(FEditorStyle::Get(), "LargeText")
@@ -142,7 +146,7 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 					.Text(LOCTEXT("DownloadPluginLabel", "Download Plugin"))
 					.IsEnabled_Lambda([=]
 					{
-						return Downloader != nullptr;
+						return Downloader != nullptr && !GActivePluginDownloaderDownload;
 					})
 					.OnClicked_Lambda([=]
 					{
