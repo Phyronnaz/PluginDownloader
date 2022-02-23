@@ -49,3 +49,8 @@ DECLARE_LOG_CATEGORY_EXTERN(LogPluginDownloader, Log, All);
 #define UE_500_SWITCH(Before, AfterOrEqual) Before
 #define UE_500_ONLY(...)
 #endif
+
+
+#if ENGINE_VERSION < 500
+#define MarkAsGarbage MarkPendingKill
+#endif

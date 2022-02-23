@@ -44,16 +44,16 @@ SVideoPlayer::~SVideoPlayer()
 {
 	if (VideoMaterial)
 	{
-		VideoMaterial->MarkPendingKill();
+		VideoMaterial->MarkAsGarbage();
 	}
 	if (MediaPlayer)
 	{
 		MediaPlayer->Close();
-		MediaPlayer->MarkPendingKill();
+		MediaPlayer->MarkAsGarbage();
 	}
 	if (MediaTexture)
 	{
-		MediaTexture->MarkPendingKill();
+		MediaTexture->MarkAsGarbage();
 	}
 
 	// We don't own MediaSource so don't kill it

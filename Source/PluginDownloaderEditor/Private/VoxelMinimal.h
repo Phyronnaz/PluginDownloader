@@ -50,3 +50,7 @@
 #include "Widgets/Layout/SScaleBox.h"
 
 #include "PluginDownloaderDefinitions.h"
+
+#if ENGINE_VERSION >= 500
+#include "Styling/StyleColors.h"
+#endif

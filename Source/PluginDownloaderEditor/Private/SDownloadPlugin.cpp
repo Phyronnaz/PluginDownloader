@@ -124,10 +124,12 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				+ SHorizontalBox::Slot()
+#if ENGINE_VERSION >= 500
+				.Padding(5)
+#endif
 				.AutoWidth()
 				[
 					SNew(SButton)
-					.ContentPadding(5)
 					.ToolTipText_Lambda([=]
 					{
 						if (!Downloader)
@@ -140,10 +142,6 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 						}
 						return LOCTEXT("DownloadPluginTip", "Download this plugin");
 					})
-					.TextStyle(FEditorStyle::Get(), "LargeText")
-					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("DownloadPluginLabel", "Download Plugin"))
 					.IsEnabled_Lambda([=]
 					{
 						return Downloader != nullptr && !GActivePluginDownloaderDownload;
@@ -153,6 +151,37 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 						FPluginDownloaderDownload::StartDownload(Downloader->GetInfo());
 						return FReply::Handled();
 					})
+
+#if ENGINE_VERSION < 500
+					.ContentPadding(5)
+					.TextStyle(FEditorStyle::Get(), "LargeText")
+					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+					.HAlign(HAlign_Center)
+					.Text(LOCTEXT("DownloadPluginLabel", "Download Plugin"))
+#else
+					.ContentPadding(FMargin(0, 5.f, 0, 4.f))
+					.Content()
+					[
+						SNew(SHorizontalBox)
+						+ SHorizontalBox::Slot()
+						.HAlign(HAlign_Center)
+						.VAlign(VAlign_Center)
+						[
+							SNew(SImage)
+							.Image(FAppStyle::Get().GetBrush("Icons.CircleArrowDown"))
+							.ColorAndOpacity(FStyleColors::AccentGreen)
+						]
+						+ SHorizontalBox::Slot()
+						.Padding(FMargin(5, 0, 0, 0))
+						.VAlign(VAlign_Center)
+						.AutoWidth()
+						[
+							SNew(STextBlock)
+							.TextStyle(FAppStyle::Get(), "SmallButtonText")
+							.Text(LOCTEXT("DownloadPluginLabel", "Download"))
+						]
+					]
+#endif
 				]
 			]
 		]

@@ -90,6 +90,14 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 				.HAlign(HAlign_Center)
 				.OnClicked_Lambda([=]
 				{
+					// See FWmfMediaTracks::AddTrackToTopology
+					if (GDynamicRHI->GetName() == FString("D3D12"))
+					{
+						// Can't play video
+						FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
+						return FReply::Handled();
+					}
+
 					UStreamMediaSource* MediaSource = NewObject<UStreamMediaSource>();
 					MediaSource->StreamUrl = "https://raw.githubusercontent.com/Phyronnaz/PluginDownloaderData/master/Videos/HowToCreateToken.mp4";
 
@@ -116,18 +124,43 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 							.HAlign(HAlign_Center)
 							[
 								SNew(SButton)
-								.ContentPadding(5)
 								.IsEnabled(true)
 								.ToolTip(SNew(SToolTip).Text(LOCTEXT("OpenBrowswer", "Click here to open github in your web browser")))
-								.TextStyle(FEditorStyle::Get(), "LargeText")
-								.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-								.HAlign(HAlign_Center)
-								.Text(LOCTEXT("OpenGithub", "Open Github"))
 								.OnClicked_Lambda([=]
 								{
 									FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
 									return FReply::Handled();
 								})
+#if ENGINE_VERSION < 500
+								.ContentPadding(5)
+								.TextStyle(FEditorStyle::Get(), "LargeText")
+								.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
+								.HAlign(HAlign_Center)
+								.Text(LOCTEXT("OpenGithub", "Open Github"))
+#else
+								.ContentPadding(FMargin(0, 5.f, 0, 4.f))
+								.Content()
+								[
+									SNew(SHorizontalBox)
+									+ SHorizontalBox::Slot()
+									.HAlign(HAlign_Center)
+									.VAlign(VAlign_Center)
+									[
+										SNew(SImage)
+										.Image(FAppStyle::Get().GetBrush("Icons.Link"))
+										.ColorAndOpacity(FStyleColors::AccentGreen)
+									]
+									+ SHorizontalBox::Slot()
+									.Padding(FMargin(5, 0, 0, 0))
+									.VAlign(VAlign_Center)
+									.AutoWidth()
+									[
+										SNew(STextBlock)
+										.TextStyle(FAppStyle::Get(), "SmallButtonText")
+										.Text(LOCTEXT("OpenGithub", "Open Github"))
+									]
+								]
+#endif
 							]
 						]
 					);

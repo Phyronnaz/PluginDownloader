@@ -142,13 +142,12 @@ public:
 #define GET_CHILD(Type, Widget, Index) GetChild<Type>(#Type, Widget, Index)
 
 		const TSharedPtr<SWidget> PluginBrowser = DockTab->GetContent();
+#if ENGINE_VERSION < 500
 		const TSharedPtr<SVerticalBox> VerticalBox1 = GET_CHILD(SVerticalBox, PluginBrowser, 0);
 		const TSharedPtr<SSplitter> Splitter = GET_CHILD(SSplitter, VerticalBox1, 0);
 		const TSharedPtr<SVerticalBox> FinalVerticalBox = GET_CHILD(SVerticalBox, Splitter, 1);
 		const TSharedPtr<SButton> NewPluginButton = GET_CHILD(SButton, FinalVerticalBox, 3);
 		const TSharedPtr<STextBlock> NewPluginText = GET_CHILD(STextBlock, NewPluginButton, 0);
-
-#undef GET_CHILD
 
 		if (!ensure(NewPluginText))
 		{
@@ -188,6 +187,58 @@ public:
 				})
 			]
 		];
+#else
+		const TSharedPtr<SBorder> Border = GET_CHILD(SBorder, PluginBrowser, 0);
+		const TSharedPtr<SVerticalBox> VerticalBox = GET_CHILD(SVerticalBox, Border, 0);
+		const TSharedPtr<SHorizontalBox> HorizontalBox = GET_CHILD(SHorizontalBox, VerticalBox, 0);
+		const TSharedPtr<SButton> AddPluginButton = GET_CHILD(SButton, HorizontalBox, 0);
+
+		if (!ensure(AddPluginButton))
+		{
+			return DockTab;
+		}
+
+		HorizontalBox->GetSlot(0).SetPadding(FMargin(12, 7, 12, 7));
+
+		HorizontalBox->InsertSlot(1)
+		.VAlign(VAlign_Center)
+		.HAlign(HAlign_Left)
+		.Padding(FMargin(0, 7, 18, 7))
+		.AutoWidth()
+		[
+			SNew(SButton)
+			.ToolTip(SNew(SToolTip).Text(LOCTEXT("DownloadPluginEnabled", "Click here to open the Download Plugin dialog.")))
+			.OnClicked_Lambda([=]
+			{
+				FGlobalTabmanager::Get()->TryInvokeTab(DownloadPluginTabId);
+				return FReply::Handled();
+			})
+			.ContentPadding(FMargin(0, 5.f, 0, 4.f))
+			.Content()
+			[
+				SNew(SHorizontalBox)
+				+ SHorizontalBox::Slot()
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				[
+					SNew(SImage)
+					.Image(FAppStyle::Get().GetBrush("Icons.CircleArrowDown"))
+					.ColorAndOpacity(FStyleColors::AccentGreen)
+				]
+				+ SHorizontalBox::Slot()
+				.Padding(FMargin(5, 0, 0, 0))
+				.VAlign(VAlign_Center)
+				.AutoWidth()
+				[
+					SNew(STextBlock)
+					.TextStyle(FAppStyle::Get(), "SmallButtonText")
+					.Text(LOCTEXT("DownloadPluginLabel", "Download"))
+				]
+			]
+		];
+#endif
+
+#undef GET_CHILD
 
 		return DockTab;
 	}

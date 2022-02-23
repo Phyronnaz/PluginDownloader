@@ -29,6 +29,7 @@ public class PluginDownloaderEditor : ModuleRules
                 "InputCore",
                 "EditorStyle",
                 "HTTP",
+                "RHI",
                 "Json",
                 "JsonUtilities",
                 "MediaAssets",
