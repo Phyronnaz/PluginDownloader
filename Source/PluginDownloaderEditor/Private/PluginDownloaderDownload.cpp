@@ -296,7 +296,8 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	const FString PluginBatchFile = IntermediateDir / "InstallPlugin_" + PluginName + ".bat";
 	const FString PluginAdminBatchFile = IntermediateDir / "InstallPlugin_" + PluginName + "_Admin.bat";
 
-	const FString UPluginFullPath = DownloadDir / FPaths::GetCleanFilename(UPlugin);
+	const FString UPluginDownloadPath = DownloadDir / FPaths::GetCleanFilename(UPlugin);
+	const FString UPluginPackagedPath = PackagedDir / FPaths::GetCleanFilename(UPlugin);
 
 	if (FPaths::DirectoryExists(InstallDir) &&
 		!FPaths::IsSamePath(InstallDir, ExistingPluginDir) &&
@@ -377,7 +378,7 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	// Don't compile targets for project plugins as it takes forever
 	const bool bOnlyCompileEditor = Info.InstallLocation == EPluginDownloadInstallLocation::Project;
 
-	const FString UatCommandLine = FString::Printf(TEXT("BuildPlugin %s -Plugin=\"%s\" -Package=\"%s\" -VS2019"), bOnlyCompileEditor ? TEXT("-NoTargetPlatforms") : TEXT(""), * UPluginFullPath, *PackagedDir);
+	const FString UatCommandLine = FString::Printf(TEXT("BuildPlugin %s -Plugin=\"%s\" -Package=\"%s\" -VS2019"), bOnlyCompileEditor ? TEXT("-NoTargetPlatforms") : TEXT(""), *UPluginDownloadPath, *PackagedDir);
 
 	IUATHelperModule::Get().CreateUatTask(
 		UatCommandLine,
@@ -390,6 +391,17 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 		// Is called from an async thread
 		AsyncTask(ENamedThreads::GameThread, [=]
 		{
+			if (FPaths::GetBaseFilename(UPlugin) == "PluginDownloader")
+			{
+				FText Error;
+				FPluginDescriptor Descriptor;
+				if (ensureMsgf(Descriptor.Load(*UPluginPackagedPath, Error), TEXT("%s"), *Error.ToString()))
+				{
+					Descriptor.EnabledByDefault = EPluginEnabledByDefault::Enabled;
+					ensureMsgf(Descriptor.Save(*UPluginPackagedPath, Error), TEXT("%s"), *Error.ToString());
+				}
+			}
+
 			OnPackageComplete(Result, PluginBatchFile, PluginAdminBatchFile);
 		});
 	});

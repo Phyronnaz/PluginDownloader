@@ -11,7 +11,7 @@ static FString GetGithubTokenPath()
 
 void UPluginDownloaderTokens::LoadFromConfig()
 {
-	ensure(FFileHelper::LoadFileToString(GithubAccessToken_Encrypted, *GetGithubTokenPath()));
+	FFileHelper::LoadFileToString(GithubAccessToken_Encrypted, *GetGithubTokenPath());
 
 	GithubAccessToken = FPluginDownloaderUtilities::DecryptData(GithubAccessToken_Encrypted);
 }
