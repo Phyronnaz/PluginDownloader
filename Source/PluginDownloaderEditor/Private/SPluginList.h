@@ -3,32 +3,9 @@
 #pragma once
 
 #include "VoxelMinimal.h"
-#include "SPluginList.generated.h"
+#include "PluginDownloaderInfo.h"
 
-USTRUCT()
-struct FPluginDownloaderRemotePluginInfo
-{
-	GENERATED_BODY()
-
-	UPROPERTY()
-	FString Name;
-
-	UPROPERTY()
-	FString Icon;
-
-	UPROPERTY()
-	FString User;
-
-	UPROPERTY()
-	FString Repo;
-
-	UPROPERTY()
-	TMap<FString, FString> Branches;
-};
-
-using FRemotePluginInfo = FPluginDownloaderRemotePluginInfo;
-
-DECLARE_DELEGATE_OneParam(FOnInfoSelected, FRemotePluginInfo);
+DECLARE_DELEGATE_OneParam(FOnInfoSelected, FPluginDownloaderRemoteInfo);
 
 class SPluginList : public SCompoundWidget
 {
@@ -40,7 +17,7 @@ public:
 	void Construct(const FArguments& Args);
 
 private:
-	TSharedPtr<SListView<TSharedRef<FRemotePluginInfo>>> ListView;
+	TSharedPtr<SListView<TSharedRef<FPluginDownloaderRemoteInfo>>> ListView;
 
-	TSharedRef<ITableRow> OnGenerateRow(const TSharedRef<FRemotePluginInfo> Item, const TSharedRef<STableViewBase>& OwnerTable) const;
+	TSharedRef<ITableRow> OnGenerateRow(const TSharedRef<FPluginDownloaderRemoteInfo> Item, const TSharedRef<STableViewBase>& OwnerTable) const;
 };

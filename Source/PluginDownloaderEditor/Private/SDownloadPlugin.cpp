@@ -44,7 +44,7 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 		.Padding(0, 0, 5, 0)
 		[
 			SNew(SPluginList)
-			.OnInfoSelected_Lambda([=](const FRemotePluginInfo& RemoteInfo)
+			.OnInfoSelected_Lambda([=](const FPluginDownloaderRemoteInfo& RemoteInfo)
 			{
 				if (RemoteInfo.Name == "Custom")
 				{
@@ -66,17 +66,8 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 				{
 					for (auto& It : RemoteInfo.Branches)
 					{
-						FString GithubBranch = It.Key;
-
-						FString VersionName = VERSION_STRINGIFY(ENGINE_MAJOR_VERSION) TEXT(".") VERSION_STRINGIFY(ENGINE_MINOR_VERSION);
-#if IS_UE5_EA
-						VersionName = "5.0-early-access";
-#endif
-
-						GithubBranch.ReplaceInline(TEXT("{ENGINE_VERSION}"), *VersionName);
-
 						ensure(!Remote->BranchDisplayNameToName.Contains(It.Value));
-						Remote->BranchDisplayNameToName.Add(It.Value, GithubBranch);
+						Remote->BranchDisplayNameToName.Add(It.Value, It.Key);
 					}
 
 					RemoteInfo.Branches.GenerateValueArray(Remote->BranchOptions);

@@ -3,6 +3,7 @@
 #include "VoxelMinimal.h"
 #include "SDownloadPlugin.h"
 #include "PluginDownloader.h"
+#include "PluginDownloaderApi.h"
 #include "PluginDownloaderTokens.h"
 #include "PluginDownloaderUtilities.h"
 #include "PluginDownloaderCustomization.h"
@@ -48,6 +49,9 @@ public:
 
 			static_cast<FHttpManagerHack&>(HttpManager).Fixup();
 		}
+
+		// Download the plugin list & check for updates
+		FPluginDownloaderApi::Initialize();
 
 		// Custom layouts
 		{

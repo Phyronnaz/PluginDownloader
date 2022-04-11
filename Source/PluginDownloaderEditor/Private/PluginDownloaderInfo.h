@@ -34,3 +34,33 @@ struct FPluginDownloaderInfo
 	UPROPERTY(EditAnywhere, Category = "Settings")
 	EPluginDownloadInstallLocation InstallLocation = EPluginDownloadInstallLocation::Project;
 };
+
+USTRUCT()
+struct FPluginDownloaderRemoteInfo
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+	FString Name;
+
+	UPROPERTY()
+	FString Icon;
+
+	UPROPERTY()
+	FString User;
+
+	UPROPERTY()
+	FString Repo;
+	
+	UPROPERTY()
+	FString Descriptor;
+
+	UPROPERTY()
+	FString StableBranch;
+	
+	UPROPERTY()
+	FString ReleaseNotesURL;
+
+	UPROPERTY()
+	TMap<FString, FString> Branches;
+};

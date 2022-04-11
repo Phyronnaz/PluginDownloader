@@ -1,15 +1,10 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
 #include "SPluginList.h"
+#include "PluginDownloaderApi.h"
 #include "ImageDownload/WebImageCache.h"
 
 FWebImageCache WebImageCache;
-
-struct FItemListCache
-{
-	TArray<TSharedRef<FRemotePluginInfo>> Items;
-};
-FItemListCache ItemListCache;
 
 void SPluginList::Construct(const FArguments& Args)
 {
@@ -23,12 +18,12 @@ void SPluginList::Construct(const FArguments& Args)
 			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
 			.Padding(2)
 			[
-				SAssignNew(ListView, SListView<TSharedRef<FRemotePluginInfo>>)
-				.ListItemsSource(&ItemListCache.Items)
+				SAssignNew(ListView, SListView<TSharedRef<FPluginDownloaderRemoteInfo>>)
+				.ListItemsSource(&GPluginDownloaderRemoteInfos)
 				.SelectionMode(ESelectionMode::Single)
 				.OnGenerateRow(this, &SPluginList::OnGenerateRow)
 				.ItemHeight(32)
-				.OnSelectionChanged_Lambda([=](TSharedPtr<FRemotePluginInfo> Info, ESelectInfo::Type)
+				.OnSelectionChanged_Lambda([=](TSharedPtr<FPluginDownloaderRemoteInfo> Info, ESelectInfo::Type)
 				{
 					if (Info)
 					{
@@ -39,62 +34,10 @@ void SPluginList::Construct(const FArguments& Args)
 		]
 	];
 
-	if (ItemListCache.Items.Num() == 0)
-	{
-		const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
-		Request->SetURL("https://raw.githubusercontent.com/Phyronnaz/PluginDownloaderData/master/Plugins.json");
-		Request->SetVerb(TEXT("GET"));
-		Request->OnProcessRequestComplete().BindLambda([=, WeakThis = TWeakPtr<SPluginList>(SharedThis(this))](FHttpRequestPtr, FHttpResponsePtr HttpResponse, bool bSucceeded)
-		{
-			if (!bSucceeded ||
-				HttpResponse->GetResponseCode() != EHttpResponseCodes::Ok ||
-				ItemListCache.Items.Num() > 0)
-			{
-				return;
-			}
-
-			TSharedPtr<FJsonValue> ParsedValue;
-			const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(HttpResponse->GetContentAsString());
-			if (!FJsonSerializer::Deserialize(Reader, ParsedValue))
-			{
-				return;
-			}
-			
-			for (const TSharedPtr<FJsonValue>& JsonValue : ParsedValue->AsArray())
-			{
-				if (!JsonValue)
-				{
-					continue;
-				}
-				const TSharedPtr<FJsonObject> JsonObject = JsonValue->AsObject();
-				if (!ensure(JsonObject))
-				{
-					continue;
-				}
-
-				const TSharedRef<FPluginDownloaderRemotePluginInfo> Info = MakeShared<FRemotePluginInfo>();
-
-				if (ensure(FJsonObjectConverter::JsonObjectToUStruct(JsonObject.ToSharedRef(), &Info.Get())))
-				{
-					ItemListCache.Items.Add(Info);
-				}
-			}
-			
-			const TSharedRef<FPluginDownloaderRemotePluginInfo> CustomInfo = MakeShared<FRemotePluginInfo>();
-			CustomInfo->Name = "Custom";
-			CustomInfo->Icon = "https://raw.githubusercontent.com/Phyronnaz/PluginDownloaderData/master/Icons/Custom.png";
-			ItemListCache.Items.Add(CustomInfo);
-
-			if (WeakThis.IsValid())
-			{
-				ListView->RequestListRefresh();
-			}
-		});
-		Request->ProcessRequest();
-	}
+	GOnPluginDownloaderRemoteInfosChanged.AddSP(ListView.Get(), &SListView<TSharedRef<FPluginDownloaderRemoteInfo>>::RequestListRefresh);
 }
 
-TSharedRef<ITableRow> SPluginList::OnGenerateRow(const TSharedRef<FRemotePluginInfo> Item, const TSharedRef<STableViewBase>& OwnerTable) const
+TSharedRef<ITableRow> SPluginList::OnGenerateRow(const TSharedRef<FPluginDownloaderRemoteInfo> Item, const TSharedRef<STableViewBase>& OwnerTable) const
 {
 	const TSharedRef<const FWebImage> Icon = WebImageCache.Download(Item->Icon);
 	
@@ -102,7 +45,7 @@ TSharedRef<ITableRow> SPluginList::OnGenerateRow(const TSharedRef<FRemotePluginI
 	TextStyle.Font.Size = 14;
 
 	return
-		SNew(STableRow<TSharedRef<FRemotePluginInfo>>, OwnerTable)
+		SNew(STableRow<TSharedRef<FPluginDownloaderRemoteInfo>>, OwnerTable)
 		[
 			SNew(SHorizontalBox)
 			+ SHorizontalBox::Slot()
