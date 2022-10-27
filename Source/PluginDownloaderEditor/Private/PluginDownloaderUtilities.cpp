@@ -312,3 +312,30 @@ FString FPluginDownloaderUtilities::Unzip(const TArray<uint8>& Data, TMap<FStrin
 #undef CheckZipError
 #undef CheckZip
 }
+
+bool FPluginDownloaderUtilities::WriteInstallPluginBatch()
+{
+	const FString Batch
+	{
+#include "InstallPluginScript.inl"
+	};
+
+	const FString BatchFile = GetIntermediateDir() / "InstallPlugin.bat";
+	return FFileHelper::SaveStringToFile(Batch, *BatchFile);
+}
+
+bool FPluginDownloaderUtilities::WriteRestartEngineBatch()
+{
+	FString Batch;
+	Batch += "cd \"";
+	Batch += FPlatformProcess::GetCurrentWorkingDirectory();
+	Batch += "\"\r\n";
+	Batch += "start \"";
+	Batch += FPlatformProcess::ExecutablePath();
+	Batch += "\" ";
+	Batch += FCommandLine::GetOriginal();
+	Batch += "\r\nexit";
+
+	const FString RestartBatchFile = GetIntermediateDir() / "RestartEngine.bat";
+	return FFileHelper::SaveStringToFile(Batch, *RestartBatchFile);
+}

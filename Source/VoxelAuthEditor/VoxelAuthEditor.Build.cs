@@ -4,11 +4,11 @@ using System;
 using System.IO;
 using UnrealBuildTool;
 
-public class PluginDownloaderEditor : ModuleRules
+public class VoxelAuthEditor : ModuleRules
 {
-    public PluginDownloaderEditor(ReadOnlyTargetRules Target) : base(Target)
+    public VoxelAuthEditor(ReadOnlyTargetRules Target) : base(Target)
     {
-        PrivatePCHHeaderFile = "Public/VoxelMinimal.h";
+        PrivatePCHHeaderFile = "../PluginDownloaderEditor/Public/VoxelMinimal.h";
         bUseUnity = false;
 
         // Marketplace requires third party deps to be in a ThirdParty folder
@@ -16,6 +16,7 @@ public class PluginDownloaderEditor : ModuleRules
 
         PrivateDependencyModuleNames.AddRange(
             new string[] {
+                "PluginDownloaderEditor",
                 "Core",
                 "CoreUObject",
                 "Engine",
@@ -31,12 +32,9 @@ public class PluginDownloaderEditor : ModuleRules
                 "JsonUtilities",
                 "MediaAssets",
                 "UATHelper",
-                "DeveloperSettings",
+				"EOSSDK",
+				"EOSShared",
+				"ToolMenus",
             });
-
-        if (Target.Platform == UnrealTargetPlatform.Win64)
-        {
-		    PublicSystemLibraries.Add("crypt32.lib");
-        }
     }
 }

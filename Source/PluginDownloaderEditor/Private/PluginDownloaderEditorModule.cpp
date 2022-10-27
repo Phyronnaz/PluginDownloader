@@ -5,6 +5,7 @@
 #include "PluginDownloader.h"
 #include "PluginDownloaderApi.h"
 #include "PluginDownloaderTokens.h"
+#include "PluginDownloaderSettings.h"
 #include "PluginDownloaderUtilities.h"
 #include "PluginDownloaderCustomization.h"
 
@@ -51,7 +52,13 @@ public:
 		}
 
 		// Download the plugin list & check for updates
-		FPluginDownloaderApi::Initialize();
+		FPluginDownloaderUtilities::DelayedCall([]
+		{
+			if (GetDefault<UPluginDownloaderSettings>()->bCheckForUpdatesOnStartup)
+			{
+				FPluginDownloaderApi::Initialize();
+			}
+		});
 
 		// Custom layouts
 		{
@@ -249,6 +256,7 @@ public:
 
 	TSharedRef<SDockTab> HandleDownloadPluginTab(const FSpawnTabArgs& SpawnTabArgs) const
 	{
+		FPluginDownloaderApi::Initialize();
 		FPluginDownloaderUtilities::CheckTempFolderSize();
 
 		TSharedRef<SDockTab> Tab = SNew(SDockTab).TabRole(NomadTab);

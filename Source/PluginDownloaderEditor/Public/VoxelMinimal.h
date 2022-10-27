@@ -39,15 +39,18 @@
 #include "DetailLayoutBuilder.h"
 #include "DetailCategoryBuilder.h"
 #include "IDetailCustomization.h"
+#include "Styling/SlateStyle.h"
 #include "Widgets/SToolTip.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Images/SImage.h"
+#include "Widgets/Images/SThrobber.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Widgets/SCompoundWidget.h"
 #include "Widgets/Views/SListView.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SSplitter.h"
 #include "Widgets/Layout/SScaleBox.h"
+#include "Widgets/Input/SEditableTextBox.h"
 
 #include "PluginDownloaderDefinitions.h"
 

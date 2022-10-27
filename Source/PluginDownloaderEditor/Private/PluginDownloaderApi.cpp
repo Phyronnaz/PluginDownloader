@@ -25,6 +25,13 @@ static FAutoConsoleCommand CheckForUpdatesCmd(
 
 void FPluginDownloaderApi::Initialize()
 {
+	static bool bInitialized = false;
+	if (bInitialized)
+	{
+		return;
+	}
+	bInitialized = true;
+
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL("https://raw.githubusercontent.com/Phyronnaz/PluginDownloaderData/master/Plugins.json");
 	Request->SetVerb(TEXT("GET"));

@@ -4,7 +4,7 @@
 
 #include "VoxelMinimal.h"
 
-struct FPluginDownloaderUtilities
+struct PLUGINDOWNLOADEREDITOR_API FPluginDownloaderUtilities
 {
 	// Delay until next fire; 0 means "next frame"
 	static void DelayedCall(TFunction<void()> Call, float Delay = 0);
@@ -22,4 +22,7 @@ struct FPluginDownloaderUtilities
 	static void CheckTempFolderSize();
 
 	static FString Unzip(const TArray<uint8>& Data, TMap<FString, TArray<uint8>>& OutFiles);
+
+	static bool WriteInstallPluginBatch();
+	static bool WriteRestartEngineBatch();
 };

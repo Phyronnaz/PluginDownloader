@@ -291,8 +291,6 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	IFileManager::Get().DeleteDirectory(*DownloadDir, false, true);
 	IFileManager::Get().DeleteDirectory(*PackagedDir, false, true);
 
-	const FString BatchFile = IntermediateDir / "InstallPlugin.bat";
-	const FString RestartBatchFile = IntermediateDir / "RestartEngine.bat";
 	const FString PluginBatchFile = IntermediateDir / "InstallPlugin_" + PluginName + ".bat";
 	const FString PluginAdminBatchFile = IntermediateDir / "InstallPlugin_" + PluginName + "_Admin.bat";
 
@@ -309,15 +307,9 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	IFileManager::Get().MakeDirectory(*TrashDir, true);
 	
 	// InstallPlugin.bat
+	if (!FPluginDownloaderUtilities::WriteInstallPluginBatch())
 	{
-		const FString Batch
-		{
-	#include "InstallPluginScript.inl"
-		};
-		if (!FFileHelper::SaveStringToFile(Batch, *BatchFile))
-		{
-			return Destroy("Failed to write " + BatchFile);
-		}
+		return Destroy("Failed to write InstallPlugin.bat");
 	}
 
 	// InstallPlugin_XXXX.bat: calls InstallPlugin.bat with the right parameters
@@ -348,21 +340,9 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	}
 
 	// RestartEngine.bat: restarts the engine with the same parameters
+	if (!FPluginDownloaderUtilities::WriteRestartEngineBatch())
 	{
-		FString Batch;
-		Batch += "cd \"";
-		Batch += FPlatformProcess::GetCurrentWorkingDirectory();
-		Batch += "\"\r\n";
-		Batch += "start \"";
-		Batch += FPlatformProcess::ExecutablePath();
-		Batch += "\" ";
-		Batch += FCommandLine::GetOriginal();
-		Batch += "\r\nexit";
-
-		if (!FFileHelper::SaveStringToFile(Batch, *RestartBatchFile))
-		{
-			return Destroy("Failed to write " + RestartBatchFile);
-		}
+		return Destroy("Failed to write RestartEngine.bat");
 	}
 
 	for (const auto& It : Files)
