@@ -47,17 +47,6 @@ public:
 			.SetHoveredForeground(FLinearColor::White)
 			.SetDisabledForeground(FLinearColor::White));
 
-		GVoxelAuthStyle->Set("DiscordButton", FButtonStyle()
-			.SetNormal(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, FLinearColor(0.097587f, 0.130136f, 0.887923f)))
-			.SetHovered(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, FLinearColor(0.246201f, 0.283149f, 0.887923f)))
-			.SetPressed(BOX_BRUSH("Common/FlatButton", 2.0f / 8.0f, FLinearColor(0.035601f, 0.057805f, 0.597202f)))
-			.SetNormalPadding(FMargin(2, 2, 2, 2))
-			.SetPressedPadding(FMargin(2, 3, 2, 1))
-			.SetNormalForeground(FLinearColor::White)
-			.SetPressedForeground(FLinearColor::White)
-			.SetHoveredForeground(FLinearColor::White)
-			.SetDisabledForeground(FLinearColor::White));
-
 #undef BOX_BRUSH
 
 		///////////////////////////////////////////////////////////////////////

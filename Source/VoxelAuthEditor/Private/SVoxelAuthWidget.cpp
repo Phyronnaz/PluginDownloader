@@ -482,7 +482,11 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 								SNew(SThrobber)
 								.Visibility_Lambda([]
 								{
-									return GVoxelAuth->GetState() == EVoxelAuthState::LoggingIn ? EVisibility::Visible : EVisibility::Collapsed;
+									return
+										GVoxelAuth->GetState() == EVoxelAuthState::LoggingIn ||
+										GVoxelAuth->GetState() == EVoxelAuthState::LoggingInAutomatically
+										? EVisibility::Visible
+										: EVisibility::Collapsed;
 								})
 							]
 							+ SOverlay::Slot()
@@ -512,79 +516,86 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 					]
 				]
 				+ SHorizontalBox::Slot()
+				+ SHorizontalBox::Slot()
 				.AutoWidth()
-				.Padding(10, 0, 0, 0)
+				.VAlign(VAlign_Center)
 				[
-					SNew(SButton)
-					.ToolTipText(INVTEXT("Open discord"))
-					.OnClicked_Lambda([]
-					{
-						FPlatformProcess::LaunchURL(TEXT("https://discord.voxelplugin.com"), nullptr, nullptr);
-						return FReply::Handled();
-					})
-					.ButtonStyle(GVoxelAuthStyle, "DiscordButton")
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(10, 0, 0, 0)
 					[
-						SNew(SBox)
-						.WidthOverride(32)
-						.HeightOverride(32)
+						SNew(SButton)
+						.ToolTipText(INVTEXT("Open documentation"))
+						.OnClicked_Lambda([]
+						{
+							FPlatformProcess::LaunchURL(TEXT("https://docs.voxelplugin.com"), nullptr, nullptr);
+							return FReply::Handled();
+						})
+						.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
 						[
-							SNew(SScaleBox)
-							.Stretch(EStretch::ScaleToFit)
+							SNew(SBox)
+							.WidthOverride(20)
+							.HeightOverride(20)
 							[
-								SNew(SImage)
-								.Image(GVoxelAuthStyle->GetBrush("DiscordIcon"))
+								SNew(SScaleBox)
+								.Stretch(EStretch::ScaleToFit)
+								[
+									SNew(SImage)
+									.Image(FAppStyle::Get().GetBrush("Icons.Documentation"))
+								]
 							]
 						]
 					]
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(10, 0, 0, 0)
-				[
-					SNew(SButton)
-					.ToolTipText(INVTEXT("Open documentation"))
-					.OnClicked_Lambda([]
-					{
-						FPlatformProcess::LaunchURL(TEXT("https://docs.voxelplugin.com"), nullptr, nullptr);
-						return FReply::Handled();
-					})
-					.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5, 0, 0, 0)
 					[
-						SNew(SBox)
-						.WidthOverride(32)
-						.HeightOverride(32)
+						SNew(SButton)
+						.ToolTipText(INVTEXT("Open contact email"))
+						.OnClicked_Lambda([]
+						{
+							FPlatformProcess::LaunchURL(TEXT("mailto:contact@voxelplugin.com"), nullptr, nullptr);
+							return FReply::Handled();
+						})
+						.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
 						[
-							SNew(SScaleBox)
-							.Stretch(EStretch::ScaleToFit)
+							SNew(SBox)
+							.WidthOverride(20)
+							.HeightOverride(20)
 							[
-								SNew(SImage)
-								.Image(FAppStyle::Get().GetBrush("Icons.Documentation"))
+								SNew(SScaleBox)
+								.Stretch(EStretch::ScaleToFit)
+								[
+									SNew(SImage)
+									.Image(GVoxelAuthStyle->GetBrush("EmailIcon"))
+								]
 							]
 						]
 					]
-				]
-				+ SHorizontalBox::Slot()
-				.AutoWidth()
-				.Padding(10, 0, 0, 0)
-				[
-					SNew(SButton)
-					.ToolTipText(INVTEXT("Open contact email"))
-					.OnClicked_Lambda([]
-					{
-						FPlatformProcess::LaunchURL(TEXT("mailto:contact@voxelplugin.com"), nullptr, nullptr);
-						return FReply::Handled();
-					})
-					.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5, 0, 0, 0)
 					[
-						SNew(SBox)
-						.WidthOverride(32)
-						.HeightOverride(32)
+						SNew(SButton)
+						.ToolTipText(INVTEXT("Open discord"))
+						.OnClicked_Lambda([]
+						{
+							FPlatformProcess::LaunchURL(TEXT("https://discord.voxelplugin.com"), nullptr, nullptr);
+							return FReply::Handled();
+						})
+						.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
 						[
-							SNew(SScaleBox)
-							.Stretch(EStretch::ScaleToFit)
+							SNew(SBox)
+							.WidthOverride(20)
+							.HeightOverride(20)
 							[
-								SNew(SImage)
-								.Image(GVoxelAuthStyle->GetBrush("EmailIcon"))
+								SNew(SScaleBox)
+								.Stretch(EStretch::ScaleToFit)
+								[
+									SNew(SImage)
+									.Image(GVoxelAuthStyle->GetBrush("DiscordIcon"))
+								]
 							]
 						]
 					]
