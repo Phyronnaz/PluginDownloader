@@ -32,7 +32,16 @@ PLUGINDOWNLOADEREDITOR_API DECLARE_LOG_CATEGORY_EXTERN(LogPluginDownloader, Log,
 #define UE_500_ONLY(...)
 #endif
 
+#if ENGINE_VERSION >= 501
+#define UE_501_SWITCH(Before, AfterOrEqual) AfterOrEqual
+#define UE_501_ONLY(...) __VA_ARGS__
+#else
+#define UE_501_SWITCH(Before, AfterOrEqual) Before
+#define UE_501_ONLY(...)
+#endif
 
 #if ENGINE_VERSION < 500
 #define MarkAsGarbage MarkPendingKill
 #endif
+
+using FEditorAppStyle = class UE_501_SWITCH(FEditorStyle, FAppStyle);

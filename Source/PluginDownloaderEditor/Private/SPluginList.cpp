@@ -11,11 +11,11 @@ void SPluginList::Construct(const FArguments& Args)
 	ChildSlot
 	[
 		SNew(SBorder)
-		.BorderImage(FEditorStyle::GetBrush("NoBorder"))
+		.BorderImage(FEditorAppStyle::GetBrush("NoBorder"))
 		.Padding(2)
 		[
 			SNew(SBorder)
-			.BorderImage(FEditorStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(FEditorAppStyle::GetBrush("ToolPanel.GroupBorder"))
 			.Padding(2)
 			[
 				SAssignNew(ListView, SListView<TSharedRef<FPluginDownloaderRemoteInfo>>)
@@ -41,7 +41,7 @@ TSharedRef<ITableRow> SPluginList::OnGenerateRow(const TSharedRef<FPluginDownloa
 {
 	const TSharedRef<const FWebImage> Icon = WebImageCache.Download(Item->Icon);
 	
-	static FTextBlockStyle TextStyle = FEditorStyle::GetWidgetStyle<FTextBlockStyle>("NormalText");
+	static FTextBlockStyle TextStyle = FEditorAppStyle::GetWidgetStyle<FTextBlockStyle>("NormalText");
 	TextStyle.Font.Size = 14;
 
 	return

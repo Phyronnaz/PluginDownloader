@@ -20,7 +20,7 @@ void FPluginDownloaderCustomCustomization::CustomizeDetails(IDetailLayoutBuilder
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(FEditorAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		.Text_Lambda([=]
 		{
 			return LOCTEXT("Refresh", "Refresh");
@@ -41,7 +41,7 @@ void FPluginDownloaderCustomCustomization::CustomizeDetails(IDetailLayoutBuilder
 		})
 		[
 			SNew(STextBlock)
-			.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(FEditorAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			.Text_Lambda([=]
 			{
 				return LOCTEXT("Refresh", "Refresh");
@@ -171,7 +171,7 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 				})
 				[
 					SNew(STextBlock)
-					.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FEditorAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 					.ToolTipText(LOCTEXT("TokenTooltip", "Create a new token from your github account. Make sure to tick the REPO scope"))
 					.Text_Lambda([=]
 					{
@@ -198,7 +198,7 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Font(FEditorStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FEditorAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.ColorAndOpacity_Lambda([=]
 				{
 					return Tokens->GithubStatus.IsEmpty()

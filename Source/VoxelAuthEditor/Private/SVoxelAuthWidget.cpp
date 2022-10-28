@@ -548,7 +548,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 						FPlatformProcess::LaunchURL(TEXT("https://docs.voxelplugin.com"), nullptr, nullptr);
 						return FReply::Handled();
 					})
-					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
 					[
 						SNew(SBox)
 						.WidthOverride(32)
@@ -574,7 +574,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 						FPlatformProcess::LaunchURL(TEXT("mailto:contact@voxelplugin.com"), nullptr, nullptr);
 						return FReply::Handled();
 					})
-					.ButtonStyle(FEditorStyle::Get(), "HoverHintOnly")
+					.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
 					[
 						SNew(SBox)
 						.WidthOverride(32)
