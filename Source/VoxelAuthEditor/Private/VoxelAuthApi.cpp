@@ -328,26 +328,35 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 		return;
 	}
 
-	const TSharedPtr<FJsonObject> Object = ParsedValue->AsObject();
-	if (!ensure(Object))
+	const TSharedPtr<FJsonObject> ArrayObject = ParsedValue->AsObject();
+	if (!ensure(ArrayObject))
 	{
 		return;
 	}
 
 	Versions.Reset();
 
-	for (const auto& It : Object->Values)
+	for (const auto& It : ArrayObject->Values)
 	{
 		const TArray<TSharedPtr<FJsonValue>> Array = It.Value->AsArray();
 		for (const TSharedPtr<FJsonValue>& Value : Array)
 		{
-			double Number = 0;
-			if (!ensure(Value->TryGetNumber(Number)))
+			const TSharedPtr<FJsonObject> VersionObject = Value->AsObject();
+			if (!ensure(VersionObject))
 			{
 				continue;
 			}
 
-			Versions.FindOrAdd(It.Key).Add(Number);
+			const int32 Counter = VersionObject->GetNumberField("counter");
+			const int32 UnrealVersion = VersionObject->GetNumberField("unrealVersion");
+
+			if (!ensure(Counter != 0) ||
+				UnrealVersion != ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION)
+			{
+				continue;
+			}
+
+			Versions.FindOrAdd(It.Key).Add(Counter);
 		}
 	}
 

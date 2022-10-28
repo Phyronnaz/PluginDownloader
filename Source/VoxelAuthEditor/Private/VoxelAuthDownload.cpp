@@ -66,7 +66,7 @@ void FVoxelAuthDownload::Download(const FString& Branch, int32 Counter)
 		{
 			{ "branch", Branch },
 			{ "counter", FString::FromInt(Counter) },
-			{ "unrealVersion", FString::FromInt(ENGINE_VERSION) },
+			{ "unrealVersion", FString::FromInt(ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION) },
 		},
 		FVoxelAuthApi::ERequestVerb::Get,
 		true,
