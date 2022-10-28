@@ -9,20 +9,51 @@ FVoxelAuthApi* GVoxelAuthApi = nullptr;
 
 void FVoxelAuthApi::UpdateComboBoxes()
 {
+	// Make sure to preserve shared ptrs for combo boxes
+
+	TMap<FString, TSharedPtr<FString>> BranchPtrs;
+	TMap<int32, TSharedPtr<int32>> CounterPtrs;
+
+	for (const TSharedPtr<FString>& Branch : Branches)
+	{
+		BranchPtrs.Add(*Branch, Branch);
+	}
+	for (const TSharedPtr<int32>& Counter : Counters)
+	{
+		CounterPtrs.Add(*Counter, Counter);
+	}
+
+	const auto GetBranch = [&](const FString& Branch)
+	{
+		if (!BranchPtrs.Contains(Branch))
+		{
+			BranchPtrs.Add(Branch, MakeShared<FString>(Branch));
+		}
+		return BranchPtrs[Branch].ToSharedRef();
+	};
+	const auto GetCounter = [&](const int32 Counter)
+	{
+		if (!CounterPtrs.Contains(Counter))
+		{
+			CounterPtrs.Add(Counter, MakeShared<int32>(Counter));
+		}
+		return CounterPtrs[Counter].ToSharedRef();
+	};
+
 	Branches.Reset();
 	Counters.Reset();
 
-	Counters.Add(MakeShared<int32>(-1));
+	Counters.Add(GetCounter(-1));
 
 	for (const auto& It : Versions)
 	{
-		Branches.Add(MakeShared<FString>(It.Key));
+		Branches.Add(GetBranch(It.Key));
 
 		if (It.Key == SelectedPluginBranch)
 		{
 			for (const int32 Counter : It.Value)
 			{
-				Counters.Add(MakeShared<int32>(Counter));
+				Counters.Add(GetCounter(Counter));
 			}
 		}
 	}

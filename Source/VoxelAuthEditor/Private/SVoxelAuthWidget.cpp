@@ -159,12 +159,22 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 	const TSharedRef<SWidget> BranchComboBox =
 		SNew(SComboBox<TSharedPtr<FString>>)
 		.OptionsSource(&GVoxelAuthApi->Branches)
-		.OnGenerateWidget_Lambda([](const TSharedPtr<FString>& Item)
+		.OnGenerateWidget_Lambda([](const TSharedPtr<FString>& Item) -> TSharedRef<SWidget>
 		{
+			if (!ensure(Item))
+			{
+				return SNullWidget::NullWidget;
+			}
+
 			return SNew(STextBlock).Text(FText::FromString(*Item));
 		})
 		.OnSelectionChanged_Lambda([](const TSharedPtr<FString>& Item, ESelectInfo::Type)
 		{
+			if (!ensure(Item))
+			{
+				return;
+			}
+
 			GVoxelAuthApi->SelectedPluginBranch = *Item;
 			GVoxelAuthApi->UpdateComboBoxes();
 		})
