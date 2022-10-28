@@ -297,9 +297,6 @@ void FVoxelAuthDownload::FinalizeDownload(const TArray<uint8>& Data, const FStri
 		return;
 	}
 
-	// Give the batch file the time to start before taking focus
-	FPlatformProcess::Sleep(1);
-
 	const TSharedPtr<SWindow> ActiveWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
 	if (ActiveWindow.IsValid())
 	{

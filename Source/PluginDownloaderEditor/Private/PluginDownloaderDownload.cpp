@@ -420,9 +420,6 @@ void FPluginDownloaderDownload::OnPackageComplete(const FString& Result, const F
 	ensure(!GPluginDownloaderRestartPending);
 	GPluginDownloaderRestartPending = true;
 
-	// Give the batch file the time to start before taking focus
-	FPlatformProcess::Sleep(1);
-
 	const TSharedPtr<SWindow> ActiveWindow = FSlateApplication::Get().GetActiveTopLevelWindow();
 	if (ActiveWindow.IsValid())
 	{

@@ -193,6 +193,26 @@ bool FPluginDownloaderUtilities::ExecuteDetachedBatch(const FString& BatchFile)
 		&StartupInfo,
 		&ProcInfo);
 
+	// Give the batch file the time to start before taking focus
+	FPlatformProcess::Sleep(1);
+
+	EnumWindows([](HWND WindowHandle, LPARAM Param) -> BOOL
+	{
+		const int32 Length = GetWindowTextLengthW(WindowHandle);
+
+		TArray<TCHAR> Buffer;
+		Buffer.SetNum(Length + 1);
+		GetWindowTextW(WindowHandle, Buffer.GetData(), Buffer.Num());
+
+		const FString WindowTitle(Buffer.Num(), Buffer.GetData());
+		if (WindowTitle.StartsWith("C:\\Windows\\system32\\cmd.exe - InstallPlugin.bat"))
+		{
+			ensure(ShowWindow(WindowHandle, SW_FORCEMINIMIZE));
+		}
+
+		return true;
+	}, 0);
+
 	return bSuccess;
 #else
 	ensure(false);
