@@ -372,6 +372,11 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 		// Is called from an async thread
 		AsyncTask(ENamedThreads::GameThread, [=]
 		{
+			if (!IFileManager::Get().FileExists(*UPluginPackagedPath))
+			{
+				return Destroy("Packaging failed. Check log for errors.");
+			}
+
 			if (FPaths::GetBaseFilename(UPlugin) == "PluginDownloader")
 			{
 				FText Error;
