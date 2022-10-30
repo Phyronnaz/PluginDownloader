@@ -1,5 +1,6 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
+#if ENGINE_VERSION >= 500
 #include "SVoxelAuthWidget.h"
 #include "VoxelAuth.h"
 #include "VoxelAuthApi.h"
@@ -640,3 +641,4 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 		]
 	];
 }
+#endif

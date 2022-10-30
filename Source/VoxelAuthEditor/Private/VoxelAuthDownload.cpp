@@ -1,5 +1,6 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
+#if ENGINE_VERSION >= 500
 #include "VoxelAuthDownload.h"
 #include "VoxelAuthApi.h"
 #include "PluginDownloaderUtilities.h"
@@ -310,3 +311,4 @@ void FVoxelAuthDownload::FinalizeDownload(const TArray<uint8>& Data, const FStri
 		GEngine->DeferredCommands.Add(TEXT("CLOSE_SLATE_MAINFRAME"));
 	}
 }
+#endif
