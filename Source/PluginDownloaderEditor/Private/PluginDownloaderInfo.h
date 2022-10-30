@@ -11,6 +11,8 @@ enum class EPluginDownloadInstallLocation
 	// Will only be accessible by the current project
 	// Highly recommended
 	Project,
+	// Use this to install under Project/GameFeatures
+	GameFeature,
 	// Will install the plugin engine wide
 	// Will require administrator access
 	// Not recommended

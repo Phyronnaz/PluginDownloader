@@ -232,7 +232,9 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 				}
 				else
 				{
-					ensure(Info.InstallLocation == EPluginDownloadInstallLocation::Project);
+					ensure(
+						Info.InstallLocation == EPluginDownloadInstallLocation::Project ||
+						Info.InstallLocation == EPluginDownloadInstallLocation::GameFeature);
 					// Nothing to do - project plugins overriden engine ones
 				}
 			}
@@ -250,7 +252,9 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 				}
 				else
 				{
-					ensure(Info.InstallLocation == EPluginDownloadInstallLocation::Project);
+					ensure(
+						Info.InstallLocation == EPluginDownloadInstallLocation::Project ||
+						Info.InstallLocation == EPluginDownloadInstallLocation::GameFeature);
 					ExistingPluginsDir.Add(PluginPath);
 				}
 			}
@@ -281,6 +285,8 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	const FString InstallDir = FPaths::ConvertRelativePathToFull(
 		Info.InstallLocation == EPluginDownloadInstallLocation::Project
 		? FPaths::ProjectPluginsDir() / RepoName
+		: Info.InstallLocation == EPluginDownloadInstallLocation::GameFeature
+		? FPaths::ProjectPluginsDir() / "GameFeatures" / RepoName
 		: FPaths::EnginePluginsDir() / "Marketplace" / RepoName);
 
 	const FString TrashDir = IntermediateDir / "Trash" / PluginName + "_" + Timestamp;
@@ -356,7 +362,7 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	}
 
 	// Don't compile targets for project plugins as it takes forever
-	const bool bOnlyCompileEditor = Info.InstallLocation == EPluginDownloadInstallLocation::Project;
+	const bool bOnlyCompileEditor = Info.InstallLocation != EPluginDownloadInstallLocation::Engine;
 
 	const FString UatCommandLine = FString::Printf(TEXT("BuildPlugin %s -Plugin=\"%s\" -Package=\"%s\" -VS2019"), bOnlyCompileEditor ? TEXT("-NoTargetPlatforms") : TEXT(""), *UPluginDownloadPath, *PackagedDir);
 
@@ -411,7 +417,7 @@ void FPluginDownloaderDownload::OnPackageComplete(const FString& Result, const F
 		}
 	}
 
-	const FString BatchFile = Info.InstallLocation == EPluginDownloadInstallLocation::Project ? PluginBatchFile : PluginAdminBatchFile;
+	const FString BatchFile = Info.InstallLocation != EPluginDownloadInstallLocation::Engine ? PluginBatchFile : PluginAdminBatchFile;
 	if (Info.InstallLocation == EPluginDownloadInstallLocation::Engine)
 	{
 		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Administrator rights will be asked to install the plugin in engine"));
