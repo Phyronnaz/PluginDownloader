@@ -451,7 +451,8 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 					})
 					.OnClicked_Lambda([]
 					{
-						if (GVoxelAuth->GetState() == EVoxelAuthState::LoggedOut)
+						if (GVoxelAuth->GetState() == EVoxelAuthState::LoggedOut ||
+							GVoxelAuth->GetState() == EVoxelAuthState::LoggingIn)
 						{
 							GVoxelAuth->Transition(EVoxelAuthState::LoggingIn);
 						}

@@ -20,6 +20,7 @@ void FVoxelAuth::Transition(const EVoxelAuthState NewState)
 		{ EVoxelAuthState::LoggedOut, EVoxelAuthState::LoggingInAutomatically },
 		{ EVoxelAuthState::LoggingIn, EVoxelAuthState::LoggedIn },
 		{ EVoxelAuthState::LoggingIn, EVoxelAuthState::LoggedOut },
+		{ EVoxelAuthState::LoggingIn, EVoxelAuthState::LoggingIn },
 		{ EVoxelAuthState::LoggingInAutomatically, EVoxelAuthState::LoggedIn },
 		{ EVoxelAuthState::LoggingInAutomatically, EVoxelAuthState::LoggedOut },
 		{ EVoxelAuthState::LoggingOut, EVoxelAuthState::LoggedOut },
