@@ -58,6 +58,8 @@ void FVoxelAuthApi::UpdateComboBoxes()
 			}
 		}
 	}
+
+	OnComboBoxesUpdated.Broadcast();
 }
 
 void FVoxelAuthApi::Initialize()
@@ -95,32 +97,8 @@ void FVoxelAuthApi::Initialize()
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-void FVoxelAuthApi::UpdateVersions(bool bForce)
+void FVoxelAuthApi::UpdateVersions()
 {
-	if (Branches.Num() > 0 && !bForce)
-	{
-		return;
-	}
-
-	if (!bForce)
-	{
-		FString TimestampString;
-		FString VersionsString;
-		if (FFileHelper::LoadFileToString(TimestampString, *(GetAppDataPath() / "Timestamp")) &&
-			FFileHelper::LoadFileToString(VersionsString, *(GetAppDataPath() / "Versions.json")))
-		{
-			FDateTime Timestamp;
-			if (ensure(FDateTime::Parse(TimestampString, Timestamp)))
-			{
-				if (Timestamp < FDateTime::Now() + FTimespan::FromHours(1))
-				{
-					UpdateVersions(VersionsString);
-					return;
-				}
-			}
-		}
-	}
-	
 	if (bIsUpdatingVersions)
 	{
 		return;
@@ -146,9 +124,6 @@ void FVoxelAuthApi::UpdateVersions(bool bForce)
 			}
 
 			UpdateVersions(Response->GetContentAsString());
-
-			ensure(FFileHelper::SaveStringToFile(FDateTime::Now().ToString(), *(GetAppDataPath() / "Timestamp")));
-			ensure(FFileHelper::SaveStringToFile(Response->GetContentAsString(), *(GetAppDataPath() / "Versions.json")));
 		}));
 }
 
@@ -396,5 +371,7 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 	{
 		It.Value.Sort();
 	}
+
+	UpdateComboBoxes();
 }
 #endif

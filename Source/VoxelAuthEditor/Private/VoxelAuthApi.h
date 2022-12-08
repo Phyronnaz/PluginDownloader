@@ -18,6 +18,8 @@ public:
 	TArray<TSharedPtr<FString>> Branches;
 	TArray<TSharedPtr<int32>> Counters;
 
+	FSimpleMulticastDelegate OnComboBoxesUpdated;
+
 	void UpdateComboBoxes();
 
 public:
@@ -25,7 +27,7 @@ public:
 
 	void Initialize();
 
-	void UpdateVersions(bool bForce = false);
+	void UpdateVersions();
     void UpdateIsPro(bool bForce = false);
 	void VerifyGumroadKey(const FString& GumroadKey);
 	void VerifyMarketplace();
