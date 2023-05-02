@@ -1,6 +1,6 @@
 ﻿{
 	"FileVersion": 3,
-	"Version": 2,
+	"Version": 3,
 	"VersionName": "1.0",
 	"FriendlyName": "Plugin Downloader",
 	"Description": "Download open source plugins from github",
