@@ -203,18 +203,23 @@ void FVoxelAuthDownload::Download(const FString& Branch, const int32 Counter)
 				ensure(FFileHelper::SaveArrayToFile(Result, *Path));
 				IFileManager::Get().SetTimeStamp(*Path, FDateTime::UtcNow());
 
-				TArray<FString> Files;
-				IFileManager::Get().FindFiles(Files, *FPaths::GetPath(Path), true, false);
-
-				int64 TotalSize = 0;
-				for (const FString& File : Files)
+				for (int32 Loop = 0; Loop < 1000; Loop++)
 				{
-					TotalSize += IFileManager::Get().FileSize(*File);
-				}
+					TArray<FString> Files;
+					IFileManager::Get().FindFilesRecursive(Files, *FPaths::GetPath(Path), TEXT("*"), true, false);
 
-				constexpr int64 MaxSize = 1024 * 1024 * 1024;
-				while (TotalSize > MaxSize)
-				{
+					int64 TotalSize = 0;
+					for (const FString& File : Files)
+					{
+						TotalSize += IFileManager::Get().FileSize(*File);
+					}
+
+					constexpr int64 MaxSize = 256 * 1024 * 1024;
+					if (TotalSize < MaxSize)
+					{
+						break;
+					}
+
 					FString OldestFile;
 					FDateTime OldestFileTimestamp;
 					for (const FString& File : Files)
@@ -228,9 +233,8 @@ void FVoxelAuthDownload::Download(const FString& Branch, const int32 Counter)
 							OldestFileTimestamp = Timestamp;
 						}
 					}
-					UE_LOG(LogPluginDownloader, Log, TEXT("Deleting %s"), *OldestFile);
 
-					TotalSize -= IFileManager::Get().FileSize(*OldestFile);
+					UE_LOG(LogPluginDownloader, Log, TEXT("Deleting %s"), *OldestFile);
 					ensure(IFileManager::Get().Delete(*OldestFile));
 				}
 
