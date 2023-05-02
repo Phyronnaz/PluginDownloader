@@ -66,7 +66,7 @@ void FVoxelAuthApi::Initialize()
 {
 	UpdateVersions();
 
-	SelectedPluginBranch = "master";
+	SelectedPluginBranch = "2.0";
 	SelectedPluginCounter = -1;
 
 	const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("Voxel");
@@ -75,19 +75,79 @@ void FVoxelAuthApi::Initialize()
 		return;
 	}
 
-	const FString Version = Plugin->GetDescriptor().VersionName;
+	const FString Branch = Plugin->GetDescriptor().VersionName;
 
-	TArray<FString> Array;
-	Version.ParseIntoArray(Array, TEXT("-"));
-
-	if (Array.Num() != 4)
+	int32 Major = 0;
+	int32 Minor = 0;
+	int32 Hotfix = 0;
+	bool bIsPreview = false;
+	int32 PreviewWeek = 0;
+	int32 PreviewHotfix = 0;
 	{
-		return;
-	}
-	ensure(Array[2] == FString::FromInt(Plugin->GetDescriptor().Version));
+		TArray<FString> VersionAndPreview;
+		Branch.ParseIntoArray(VersionAndPreview, TEXT("p-"));
+		ensure(VersionAndPreview.Num() == 1 || VersionAndPreview.Num() == 2);
 
-	PluginBranch = Array[1];
-	PluginCounter = Plugin->GetDescriptor().Version;
+		if (VersionAndPreview.Num() == 1)
+		{
+			TArray<FString> MinorMajorHotfix;
+			VersionAndPreview[0].ParseIntoArray(MinorMajorHotfix, TEXT("."));
+			ensure(MinorMajorHotfix.Num() == 3);
+
+			Major = FCString::Atoi(*MinorMajorHotfix[0]);
+			Minor = FCString::Atoi(*MinorMajorHotfix[1]);
+			Hotfix = FCString::Atoi(*MinorMajorHotfix[2]);
+			ensure(FString::FromInt(Major) == MinorMajorHotfix[0]);
+			ensure(FString::FromInt(Minor) == MinorMajorHotfix[1]);
+			ensure(FString::FromInt(Hotfix) == MinorMajorHotfix[2]);
+		}
+		else
+		{
+			bIsPreview = true;
+
+			TArray<FString> MinorMajor;
+			VersionAndPreview[0].ParseIntoArray(MinorMajor, TEXT("."));
+			ensure(MinorMajor.Num() == 2);
+
+			TArray<FString> PreviewAndHotfix;
+			VersionAndPreview[1].ParseIntoArray(PreviewAndHotfix, TEXT("."));
+			ensure(PreviewAndHotfix.Num() == 1 || PreviewAndHotfix.Num() == 2);
+
+			Major = FCString::Atoi(*MinorMajor[0]);
+			Minor = FCString::Atoi(*MinorMajor[1]);
+			ensure(FString::FromInt(Major) == MinorMajor[0]);
+			ensure(FString::FromInt(Minor) == MinorMajor[1]);
+
+			PreviewWeek = FCString::Atoi(*PreviewAndHotfix[0]);
+			ensure(FString::FromInt(PreviewWeek) == PreviewAndHotfix[0]);
+
+			if (PreviewAndHotfix.Num() == 2)
+			{
+				PreviewHotfix = FCString::Atoi(*PreviewAndHotfix[1]);
+				ensure(FString::FromInt(PreviewHotfix) == PreviewAndHotfix[1]);
+			}
+		}
+	}
+
+	int32 Counter = Major;
+	{
+		Counter *= 10;
+		Counter += Minor;
+
+		Counter *= 10;
+		Counter += bIsPreview ? 0 : Hotfix;
+
+		Counter *= 1000;
+		Counter += bIsPreview ? PreviewWeek : 999;
+
+		Counter *= 10;
+		Counter += bIsPreview ? PreviewHotfix : 0;
+
+		ensure(Plugin->GetDescriptor().Version == Counter);
+	}
+
+	PluginBranch = FString::FromInt(Major) + "." + FString::FromInt(Minor);
+	PluginCounter = Counter;
 
 	SelectedPluginBranch = PluginBranch;
 	SelectedPluginCounter = -1;
@@ -261,6 +321,44 @@ bool FVoxelAuthApi::IsPro() const
 bool FVoxelAuthApi::IsProUpdated() const
 {
 	return ProAccountIds.Contains(GVoxelAuth->GetAccountId());
+}
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////////////////////
+
+FString FVoxelAuthApi::GetCounterName(int32 Counter) const
+{
+	const int32 PreviewHotfix = Counter % 10;
+	Counter /= 10;
+
+	const int32 PreviewWeek = Counter % 1000;
+	Counter /= 1000;
+
+	const int32 Hotfix = Counter % 10;
+	Counter /= 10;
+
+	const int32 Minor = Counter % 10;
+	Counter /= 10;
+
+	const int32 Major = Counter % 10;
+	ensure(Counter == Major);
+
+	if (PreviewWeek != 999)
+	{
+		ensure(Hotfix == 0);
+		FString Result = FString::FromInt(Major) + "." + FString::FromInt(Minor) + "p-" + FString::FromInt(PreviewWeek);
+		if (PreviewHotfix != 0)
+		{
+			Result += "." + FString::FromInt(PreviewHotfix);
+		}
+		return Result;
+	}
+	else
+	{
+		ensure(PreviewHotfix == 0);
+		return FString::FromInt(Major) + "." + FString::FromInt(Minor) + "." + FString::FromInt(Hotfix);
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////

@@ -33,11 +33,13 @@ public:
 	void VerifyMarketplace();
 
     bool IsPro() const;
-    bool IsProUpdated() const;
+	bool IsProUpdated() const;
 
-    bool IsVerifyingGumroadKey() const
-    {
-	    return bIsVerifyingGumroadKey;
+	FString GetCounterName(int32 Counter) const;
+
+	bool IsVerifyingGumroadKey() const
+	{
+		return bIsVerifyingGumroadKey;
     }
     bool IsVerifyingMarketplace() const
     {

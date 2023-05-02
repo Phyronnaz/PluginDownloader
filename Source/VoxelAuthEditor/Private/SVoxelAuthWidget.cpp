@@ -190,7 +190,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 				return SNew(STextBlock).Text(INVTEXT("latest"));
 			}
 
-			return SNew(STextBlock).Text(FText::FromString(FString::FromInt(*Item)));
+			return SNew(STextBlock).Text(FText::FromString(GVoxelAuthApi->GetCounterName(*Item)));
 		})
 		.OnSelectionChanged_Lambda([](const TSharedPtr<int32>& Item, ESelectInfo::Type)
 		{
@@ -207,10 +207,10 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 					{
 						Max = FMath::Max(Max, *Counter);
 					}
-					return FText::FromString("latest (" + FString::FromInt(Max) + ")");
+					return FText::FromString("latest (" + GVoxelAuthApi->GetCounterName(Max) + ")");
 				}
 
-				return FText::FromString(FString::FromInt(GVoxelAuthApi->SelectedPluginCounter));
+				return FText::FromString(GVoxelAuthApi->GetCounterName(GVoxelAuthApi->SelectedPluginCounter));
 			})
 		];
 
@@ -223,29 +223,6 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 		{
 			return GVoxelAuthApi->IsPro() && GVoxelAuthApi->GetBranches().Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
 		})
-		
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(0, 0, 0, 0)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			.Padding(0, 0, 10, 0)
-			[
-				SNew(STextBlock)
-				.Text(INVTEXT("Installed Branch"))
-			]
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			.Padding(0, 0, 10, 0)
-			[
-				SNew(STextBlock)
-				.Text(FText::FromString(GVoxelAuthApi->GetPluginBranch().IsEmpty() ? "Unknown" : GVoxelAuthApi->GetPluginBranch()))
-			]
-		]
 		
 		+ SVerticalBox::Slot()
 		.AutoHeight()
@@ -279,7 +256,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 						IsLatest = " (not latest)";
 					}
 
-					return FText::FromString(FString::FromInt(GVoxelAuthApi->GetPluginCounter()) + IsLatest);
+					return FText::FromString(GVoxelAuthApi->GetCounterName(GVoxelAuthApi->GetPluginCounter()) + IsLatest);
 				})
 			]
 		]
