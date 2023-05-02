@@ -1,16 +1,66 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
 #include "VoxelAuthDownload.h"
-#include "VoxelAuthApi.h"
 #include "PluginDownloaderUtilities.h"
+#include "VoxelAuth.h"
+#include "VoxelAuthApi.h"
 #include "Compression/OodleDataCompressionUtil.h"
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 
 FVoxelAuthDownload* GVoxelAuthDownload = nullptr;
 
-void FVoxelAuthDownload::Download(const FString& Branch, int32 Counter)
+void FVoxelAuthDownload::Download(const FString& Branch, const int32 Counter)
 {
+	if (GVoxelAuth->GetState() == EVoxelAuthState::Uninitialized)
+	{
+		GVoxelAuth->Transition(EVoxelAuthState::LoggedOut);
+	}
+	if (GVoxelAuth->GetState() == EVoxelAuthState::LoggedOut)
+	{
+		GVoxelAuth->Transition(EVoxelAuthState::LoggingInAutomatically);
+	}
+	if (GVoxelAuth->GetState() == EVoxelAuthState::LoggingIn ||
+		GVoxelAuth->GetState() == EVoxelAuthState::LoggingInAutomatically)
+	{
+		FNotificationInfo Info(INVTEXT("Logging in"));
+		Info.bFireAndForget = false;
+		Info.ExpireDuration = 0.f;
+		Info.FadeInDuration = 0.f;
+		Info.FadeOutDuration = 0.f;
+		Info.WidthOverride = FOptionalSize();
+
+		const TSharedPtr<SNotificationItem> LoginNotification = FSlateNotificationManager::Get().AddNotification(Info);
+		LoginNotification->SetCompletionState(SNotificationItem::CS_Pending);
+
+		FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([=](float)
+		{
+			if (GVoxelAuth->GetState() == EVoxelAuthState::LoggedIn)
+			{
+				LoginNotification->ExpireAndFadeout();
+				Download(Branch, Counter);
+				return false;
+			}
+
+			if (GVoxelAuth->GetState() == EVoxelAuthState::LoggingIn ||
+				GVoxelAuth->GetState() == EVoxelAuthState::LoggingInAutomatically)
+			{
+				return true;
+			}
+
+			LoginNotification->ExpireAndFadeout();
+			FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Cannot download Voxel Plugin update: please login again from the Voxel menu top right of the editor"));
+			return false;
+		}));
+		return;
+	}
+
+	if (GVoxelAuth->GetState() != EVoxelAuthState::LoggedIn)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, FText::FromString("Cannot download Voxel Plugin update: please login again from the Voxel menu top right of the editor"));
+		return;
+	}
+
 	if (const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("VoxelPro"))
 	{
 		FMessageDialog::Open(
@@ -29,25 +79,24 @@ void FVoxelAuthDownload::Download(const FString& Branch, int32 Counter)
 
 	if (const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("Voxel"))
 	{
-		TArray<FString> Array;
-		Plugin->GetDescriptor().VersionName.ParseIntoArray(Array, TEXT("-"));
-
-		if (Array.Num() != 4)
-		{
-			FMessageDialog::Open(
-				EAppMsgType::Ok,
-				FText::FromString("Unknown version of Voxel found in " + FPaths::ConvertRelativePathToFull(Plugin->GetBaseDir()) + ". Please uninstall it first."));
-			return;
-		}
-
 		const FString ExpectedPath = FPaths::ConvertRelativePathToFull(FPaths::ProjectPluginsDir() / "Voxel");
 		const FString Path = FPaths::ConvertRelativePathToFull(Plugin->GetBaseDir());
 		if (!FPaths::IsSamePath(ExpectedPath, Path))
 		{
 			FMessageDialog::Open(
 				EAppMsgType::Ok,
-				FText::FromString("Voxel found in " + Path + ", but should be " + ExpectedPath + ". Please uninstall it or move it."));
+				FText::FromString("Voxel Plugin found in " + Path + ", but should be " + ExpectedPath + ". Please uninstall it or move it."));
 			return;
+		}
+
+		if (Plugin->GetDescriptor().VersionName == "Unknown")
+		{
+			if (EAppReturnType::Ok != FMessageDialog::Open(
+				EAppMsgType::OkCancel,
+				FText::FromString("Unknown version of Voxel Plugin found in " + FPaths::ConvertRelativePathToFull(Plugin->GetBaseDir()) + ". Do you want to replace it?")))
+			{
+				return;
+			}
 		}
 	}
 
@@ -57,7 +106,7 @@ void FVoxelAuthDownload::Download(const FString& Branch, int32 Counter)
 		return;
 	}
 
-	FNotificationInfo Info(FText::FromString("Downloading Voxel Plugin " + Branch + "-" + FString::FromInt(Counter)));
+	FNotificationInfo Info(FText::FromString("Downloading Voxel Plugin " + GVoxelAuthApi->GetCounterName(Counter)));
 	Info.bFireAndForget = false;
 	Notification = FSlateNotificationManager::Get().AddNotification(Info);
 

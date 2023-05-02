@@ -216,6 +216,36 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 	GVoxelAuthApi->OnComboBoxesUpdated.AddSP(BranchComboBox, &SComboBox<TSharedPtr<FString>>::RefreshOptions);
 	GVoxelAuthApi->OnComboBoxesUpdated.AddSP(VersionComboBox, &SComboBox<TSharedPtr<int32>>::RefreshOptions);
 
+	const auto IsDownloadEnabled = []
+	{
+		const TArray<int32>* Versions = GVoxelAuthApi->GetVersions().Find(GVoxelAuthApi->SelectedPluginBranch);
+		if (!Versions)
+		{
+			return false;
+		}
+
+		if (GVoxelAuthApi->SelectedPluginCounter == -1)
+		{
+			if (GVoxelAuthApi->SelectedPluginBranch == GVoxelAuthApi->GetPluginBranch() &&
+				Versions->Last() == GVoxelAuthApi->GetPluginCounter())
+			{
+				return false;
+			}
+
+			return true;
+		}
+		else
+		{
+			if (GVoxelAuthApi->SelectedPluginBranch == GVoxelAuthApi->GetPluginBranch() &&
+				GVoxelAuthApi->SelectedPluginCounter == GVoxelAuthApi->GetPluginCounter())
+			{
+				return false;
+			}
+
+			return Versions->Contains(GVoxelAuthApi->SelectedPluginCounter);
+		}
+	};
+
 	const TSharedRef<SVerticalBox> DownloadVBox =
 		SNew(SVerticalBox)
 		.Visibility_Lambda([]
@@ -309,40 +339,15 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 		.Padding(0, 10, 0, 0)
 		[
 			SNew(SHorizontalBox)
+
+			+ SHorizontalBox::Slot()
+
 			+ SHorizontalBox::Slot()
 			.VAlign(VAlign_Center)
 			.AutoWidth()
 			[
 				SNew(SButton)
-				.IsEnabled_Lambda([]
-				{
-					const TArray<int32>* Versions = GVoxelAuthApi->GetVersions().Find(GVoxelAuthApi->SelectedPluginBranch);
-					if (!Versions)
-					{
-						return false;
-					}
-
-					if (GVoxelAuthApi->SelectedPluginCounter == -1)
-					{
-						if (GVoxelAuthApi->SelectedPluginBranch == GVoxelAuthApi->GetPluginBranch() &&
-							Versions->Last() == GVoxelAuthApi->GetPluginCounter())
-						{
-							return false;
-						}
-
-						return true;
-					}
-					else
-					{
-						if (GVoxelAuthApi->SelectedPluginBranch == GVoxelAuthApi->GetPluginBranch() &&
-							GVoxelAuthApi->SelectedPluginCounter == GVoxelAuthApi->GetPluginCounter())
-						{
-							return false;
-						}
-
-						return Versions->Contains(GVoxelAuthApi->SelectedPluginCounter);
-					}
-				})
+				.IsEnabled_Lambda(IsDownloadEnabled)
 				.OnClicked_Lambda([=]
 				{
 					const TArray<int32>* Versions = GVoxelAuthApi->GetVersions().Find(GVoxelAuthApi->SelectedPluginBranch);
@@ -357,7 +362,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 					}
 					else
 					{
-						GVoxelAuthDownload->Download(GVoxelAuthApi->SelectedPluginBranch, (*Versions)[GVoxelAuthApi->SelectedPluginCounter]);
+						GVoxelAuthDownload->Download(GVoxelAuthApi->SelectedPluginBranch, GVoxelAuthApi->SelectedPluginCounter);
 					}
 
 					return FReply::Handled();
@@ -384,6 +389,58 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 					]
 				]
 			]
+
+			+ SHorizontalBox::Slot()
+
+			+ SHorizontalBox::Slot()
+			.VAlign(VAlign_Center)
+			.AutoWidth()
+			[
+				SNew(SButton)
+				.IsEnabled_Lambda(IsDownloadEnabled)
+				.OnClicked_Lambda([=]
+				{
+					const TArray<int32>* Versions = GVoxelAuthApi->GetVersions().Find(GVoxelAuthApi->SelectedPluginBranch);
+					if (!Versions)
+					{
+						return FReply::Handled();
+					}
+
+					if (GVoxelAuthApi->SelectedPluginCounter == -1)
+					{
+						GVoxelAuthApi->OpenReleaseNotes(Versions->Last());
+					}
+					else
+					{
+						GVoxelAuthApi->OpenReleaseNotes(GVoxelAuthApi->SelectedPluginCounter);
+					}
+
+					return FReply::Handled();
+				})
+				.ContentPadding(FMargin(0, 5.f, 0, 4.f))
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.HAlign(HAlign_Center)
+					.VAlign(VAlign_Center)
+					[
+						SNew(SImage)
+						.Image(FAppStyle::Get().GetBrush("Icons.Documentation"))
+						.ColorAndOpacity(FStyleColors::AccentGreen)
+					]
+					+ SHorizontalBox::Slot()
+					.Padding(FMargin(5, 0, 0, 0))
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.TextStyle(FAppStyle::Get(), "SmallButtonText")
+						.Text(INVTEXT("Release Notes"))
+					]
+				]
+			]
+			
+			+ SHorizontalBox::Slot()
 		];
 
 	///////////////////////////////////////////////////////////////////////////

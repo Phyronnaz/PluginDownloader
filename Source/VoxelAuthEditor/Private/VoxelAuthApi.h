@@ -36,6 +36,7 @@ public:
 	bool IsProUpdated() const;
 
 	FString GetCounterName(int32 Counter) const;
+	void OpenReleaseNotes(int32 Counter) const;
 
 	bool IsVerifyingGumroadKey() const
 	{

@@ -2,8 +2,11 @@
 
 #include "VoxelAuthApi.h"
 #include "VoxelAuth.h"
+#include "VoxelAuthDownload.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
+#include "Widgets/Notifications/SNotificationList.h"
+#include "Framework/Notifications/NotificationManager.h"
 
 FVoxelAuthApi* GVoxelAuthApi = nullptr;
 
@@ -75,6 +78,10 @@ void FVoxelAuthApi::Initialize()
 	}
 
 	const FString Branch = Plugin->GetDescriptor().VersionName;
+	if (Branch == "Unknown")
+	{
+		return;
+	}
 
 	int32 Major = 0;
 	int32 Minor = 0;
@@ -328,6 +335,11 @@ bool FVoxelAuthApi::IsProUpdated() const
 
 FString FVoxelAuthApi::GetCounterName(int32 Counter) const
 {
+	if (Counter == 0)
+	{
+		return "Unknown";
+	}
+
 	const int32 PreviewHotfix = Counter % 10;
 	Counter /= 10;
 
@@ -358,6 +370,12 @@ FString FVoxelAuthApi::GetCounterName(int32 Counter) const
 		ensure(PreviewHotfix == 0);
 		return FString::FromInt(Major) + "." + FString::FromInt(Minor) + "." + FString::FromInt(Hotfix);
 	}
+}
+
+void FVoxelAuthApi::OpenReleaseNotes(const int32 Counter) const
+{
+	const FString Url = "https://docs.voxelplugin.com/release-notes#" + GetCounterName(Counter);
+	FPlatformProcess::LaunchURL(*Url, nullptr, nullptr);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -470,4 +488,95 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 	}
 
 	UpdateComboBoxes();
+
+	static bool bDisplayedNotification = false;
+	if (bDisplayedNotification)
+	{
+		return;
+	}
+	bDisplayedNotification = true;
+
+	if (GetPluginState() != EState::HasUpdate ||
+		!Versions.Contains(PluginBranch))
+	{
+		return;
+	}
+
+	const int32 Latest = Versions[PluginBranch].Last();
+
+	FString String;
+	if (GConfig->GetString(
+		TEXT("VoxelPlugin_SkippedVersions"),
+		*FString::FromInt(Latest),
+		String,
+		GEditorPerProjectIni) &&
+		String == "1")
+	{
+		return;
+	}
+
+	const TSharedRef<TWeakPtr<SNotificationItem>> WeakNotification = MakeShared<TWeakPtr<SNotificationItem>>();
+
+	FNotificationInfo Info(FText::Format(
+		INVTEXT("A new Voxel Plugin release is available: {0}"),
+		FText::FromString(GetCounterName(Latest))));
+
+	Info.bFireAndForget = false;
+	Info.ExpireDuration = 0.f;
+	Info.FadeInDuration = 0.f;
+	Info.FadeOutDuration = 0.f;
+	Info.WidthOverride = FOptionalSize();
+
+	Info.CheckBoxText = INVTEXT("Skip this update");
+	Info.CheckBoxStateChanged = FOnCheckStateChanged::CreateLambda([=](const ECheckBoxState NewState)
+	{
+		GConfig->SetString(
+			TEXT("VoxelPlugin_SkippedVersions"),
+			*FString::FromInt(Latest),
+			NewState == ECheckBoxState::Checked ? TEXT("1") : TEXT("0"),
+			GEditorPerProjectIni);
+	});
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		INVTEXT("Update"),
+		INVTEXT("Update Voxel Plugin to latest"),
+		FSimpleDelegate::CreateLambda([=]
+		{
+			GVoxelAuthDownload->Download(PluginBranch, Latest);
+
+			const TSharedPtr<SNotificationItem> Notification = WeakNotification->Pin();
+			if (!ensure(Notification))
+			{
+				return;
+			}
+
+			Notification->ExpireAndFadeout();
+		}),
+		SNotificationItem::CS_None));
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		INVTEXT("Release Notes"),
+		INVTEXT("Show the new version release notes"),
+		FSimpleDelegate::CreateLambda([=]
+		{
+			GVoxelAuthApi->OpenReleaseNotes(Latest);
+		}),
+		SNotificationItem::CS_None));
+
+	Info.ButtonDetails.Add(FNotificationButtonInfo(
+		INVTEXT("Dismiss"),
+		INVTEXT("Dismiss"),
+		FSimpleDelegate::CreateLambda([=]
+		{
+			const TSharedPtr<SNotificationItem> Notification = WeakNotification->Pin();
+			if (!ensure(Notification))
+			{
+				return;
+			}
+
+			Notification->ExpireAndFadeout();
+		}),
+		SNotificationItem::CS_None));
+
+	*WeakNotification = FSlateNotificationManager::Get().AddNotification(Info);
 }
