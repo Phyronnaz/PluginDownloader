@@ -115,9 +115,7 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 				SNew(SHorizontalBox)
 				+ SHorizontalBox::Slot()
 				+ SHorizontalBox::Slot()
-#if ENGINE_VERSION >= 500
 				.Padding(5)
-#endif
 				.AutoWidth()
 				[
 					SNew(SButton)
@@ -143,13 +141,6 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 						return FReply::Handled();
 					})
 
-#if ENGINE_VERSION < 500
-					.ContentPadding(5)
-					.TextStyle(FEditorStyle::Get(), "LargeText")
-					.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-					.HAlign(HAlign_Center)
-					.Text(LOCTEXT("DownloadPluginLabel", "Download Plugin"))
-#else
 					.ContentPadding(FMargin(0, 5.f, 0, 4.f))
 					.Content()
 					[
@@ -172,7 +163,6 @@ void SDownloadPlugin::Construct(const FArguments& Args)
 							.Text(LOCTEXT("DownloadPluginLabel", "Download"))
 						]
 					]
-#endif
 				]
 			]
 		]

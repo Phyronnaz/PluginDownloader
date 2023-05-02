@@ -1,6 +1,5 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
-#if ENGINE_VERSION >= 500
 #include "VoxelAuthApi.h"
 #include "VoxelAuth.h"
 #include "HttpModule.h"
@@ -472,4 +471,3 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 
 	UpdateComboBoxes();
 }
-#endif

@@ -69,11 +69,11 @@ void FPluginDownloaderDownload::Start()
 
 	ProgressWindow->SetContent(
 		SNew(SBorder)
-		.BorderImage(FEditorAppStyle::GetBrush("NoBorder"))
+		.BorderImage(FAppStyle::GetBrush("NoBorder"))
 		.Padding(2)
 		[
 			SNew(SBorder)
-			.BorderImage(FEditorAppStyle::GetBrush("ToolPanel.GroupBorder"))
+			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
 			.Padding(2)
 			[
 				SNew(SBox)
@@ -371,8 +371,8 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 		INVTEXT("Windows"),
 		INVTEXT("Packaging Plugin"),
 		INVTEXT("Package Plugin Task"),
-		FEditorAppStyle::GetBrush(TEXT("MainFrame.CookContent")),
-		UE_501_ONLY(nullptr,)
+		FAppStyle::GetBrush(TEXT("MainFrame.CookContent")),
+		nullptr,
 		[=](const FString& Result, double)
 	{
 		// Is called from an async thread

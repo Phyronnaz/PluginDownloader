@@ -1,6 +1,5 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
-#if ENGINE_VERSION >= 500
 #include "SVoxelAuthWidget.h"
 #include "VoxelAuth.h"
 #include "VoxelAuthApi.h"
@@ -548,7 +547,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 							FPlatformProcess::LaunchURL(TEXT("https://docs.voxelplugin.com"), nullptr, nullptr);
 							return FReply::Handled();
 						})
-						.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
+						.ButtonStyle(FAppStyle::Get(), "HoverHintOnly")
 						[
 							SNew(SBox)
 							.WidthOverride(20)
@@ -574,7 +573,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 							FPlatformProcess::LaunchURL(TEXT("mailto:contact@voxelplugin.com"), nullptr, nullptr);
 							return FReply::Handled();
 						})
-						.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
+						.ButtonStyle(FAppStyle::Get(), "HoverHintOnly")
 						[
 							SNew(SBox)
 							.WidthOverride(20)
@@ -600,7 +599,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 							FPlatformProcess::LaunchURL(TEXT("https://discord.voxelplugin.com"), nullptr, nullptr);
 							return FReply::Handled();
 						})
-						.ButtonStyle(FEditorAppStyle::Get(), "HoverHintOnly")
+						.ButtonStyle(FAppStyle::Get(), "HoverHintOnly")
 						[
 							SNew(SBox)
 							.WidthOverride(20)
@@ -646,4 +645,3 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 		]
 	];
 }
-#endif

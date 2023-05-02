@@ -1,6 +1,5 @@
 // Copyright Voxel Plugin, Inc. All Rights Reserved.
 
-#if ENGINE_VERSION >= 500
 #include "VoxelMinimal.h"
 #include "ToolMenus.h"
 #include "VoxelAuth.h"
@@ -111,6 +110,3 @@ public:
 };
 
 IMPLEMENT_MODULE(FVoxelAuthEditorModule, VoxelAuthEditor);
-#else
-IMPLEMENT_MODULE(FDefaultModuleImpl, VoxelAuthEditor);
-#endif

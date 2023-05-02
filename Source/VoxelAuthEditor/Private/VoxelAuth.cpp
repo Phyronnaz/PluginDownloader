@@ -1,6 +1,5 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
-#if ENGINE_VERSION >= 500
 #include "VoxelAuth.h"
 #include "VoxelAuthApi.h"
 #include "eos_sdk.h"
@@ -255,4 +254,3 @@ void FVoxelAuth::OnLogin(const EOS_Auth_LoginCallbackInfo* Data)
 		GVoxelAuth->Transition(EVoxelAuthState::LoggedIn);
 	});
 }
-#endif

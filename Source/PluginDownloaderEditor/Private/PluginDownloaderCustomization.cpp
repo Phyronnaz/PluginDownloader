@@ -20,7 +20,7 @@ void FPluginDownloaderCustomCustomization::CustomizeDetails(IDetailLayoutBuilder
 	.NameContent()
 	[
 		SNew(STextBlock)
-		.Font(FEditorAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+		.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 		.Text_Lambda([=]
 		{
 			return LOCTEXT("Refresh", "Refresh");
@@ -41,7 +41,7 @@ void FPluginDownloaderCustomCustomization::CustomizeDetails(IDetailLayoutBuilder
 		})
 		[
 			SNew(STextBlock)
-			.Font(FEditorAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+			.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 			.Text_Lambda([=]
 			{
 				return LOCTEXT("Refresh", "Refresh");
@@ -131,13 +131,6 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 									FPlatformProcess::LaunchURL(TEXT("https://github.com/settings/tokens"), nullptr, nullptr);
 									return FReply::Handled();
 								})
-#if ENGINE_VERSION < 500
-								.ContentPadding(5)
-								.TextStyle(FEditorStyle::Get(), "LargeText")
-								.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-								.HAlign(HAlign_Center)
-								.Text(LOCTEXT("OpenGithub", "Open Github"))
-#else
 								.ContentPadding(FMargin(0, 5.f, 0, 4.f))
 								.Content()
 								[
@@ -160,7 +153,6 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 										.Text(LOCTEXT("OpenGithub", "Open Github"))
 									]
 								]
-#endif
 							]
 						]
 					);
@@ -171,7 +163,7 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 				})
 				[
 					SNew(STextBlock)
-					.Font(FEditorAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+					.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 					.ToolTipText(LOCTEXT("TokenTooltip", "Create a new token from your github account. Make sure to tick the REPO scope"))
 					.Text_Lambda([=]
 					{
@@ -198,7 +190,7 @@ void FPluginDownloaderTokensCustomization::CustomizeDetails(IDetailLayoutBuilder
 			.VAlign(VAlign_Center)
 			[
 				SNew(STextBlock)
-				.Font(FEditorAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
+				.Font(FAppStyle::GetFontStyle(TEXT("PropertyWindow.NormalFont")))
 				.ColorAndOpacity_Lambda([=]
 				{
 					return Tokens->GithubStatus.IsEmpty()

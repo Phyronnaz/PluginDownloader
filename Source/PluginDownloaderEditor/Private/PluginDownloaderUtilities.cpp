@@ -24,7 +24,7 @@ void FPluginDownloaderUtilities::DelayedCall(TFunction<void()> Call, float Delay
 {
 	check(IsInGameThread());
 
-	UE_500_SWITCH(FTicker, FTSTicker)::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([=](float)
+	FTSTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([=](float)
 	{
 		Call();
 		return false;
@@ -90,11 +90,7 @@ void FPluginDownloaderUtilities::LoadConfig(UObject* Object, const FString& Base
 		FString Value;
 		if (GConfig->GetString(*Section, *Property.GetName(), Value, Filename))
 		{
-#if ENGINE_VERSION < 501
-			Property.ImportText(*Value, Property.ContainerPtrToValuePtr<void>(Object), PPF_None, Object);
-#else
 			Property.ImportText_Direct(*Value, Property.ContainerPtrToValuePtr<void>(Object), Object, PPF_None);
-#endif
 		}
 	}
 }

@@ -40,6 +40,7 @@
 #include "DetailCategoryBuilder.h"
 #include "IDetailCustomization.h"
 #include "Styling/SlateStyle.h"
+#include "Styling/StyleColors.h"
 #include "Widgets/SToolTip.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Images/SImage.h"
@@ -53,7 +54,3 @@
 #include "Widgets/Input/SEditableTextBox.h"
 
 #include "PluginDownloaderDefinitions.h"
-
-#if ENGINE_VERSION >= 500
-#include "Styling/StyleColors.h"
-#endif

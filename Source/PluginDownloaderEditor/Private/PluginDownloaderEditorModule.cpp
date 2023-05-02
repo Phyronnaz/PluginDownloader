@@ -153,52 +153,6 @@ public:
 #define GET_CHILD(Type, Widget, Index) GetChild<Type>(#Type, Widget, Index)
 
 		const TSharedPtr<SWidget> PluginBrowser = DockTab->GetContent();
-#if ENGINE_VERSION < 500
-		const TSharedPtr<SVerticalBox> VerticalBox1 = GET_CHILD(SVerticalBox, PluginBrowser, 0);
-		const TSharedPtr<SSplitter> Splitter = GET_CHILD(SSplitter, VerticalBox1, 0);
-		const TSharedPtr<SVerticalBox> FinalVerticalBox = GET_CHILD(SVerticalBox, Splitter, 1);
-		const TSharedPtr<SButton> NewPluginButton = GET_CHILD(SButton, FinalVerticalBox, 3);
-		const TSharedPtr<STextBlock> NewPluginText = GET_CHILD(STextBlock, NewPluginButton, 0);
-
-		if (!ensure(NewPluginText))
-		{
-			return DockTab;
-		}
-
-		NewPluginText->SetText(LOCTEXT("CreateNewPlugin", "Create New Plugin"));
-
-		FinalVerticalBox->RemoveSlot(NewPluginButton.ToSharedRef());
-		
-		FinalVerticalBox->AddSlot()
-		.AutoHeight()
-		.Padding(FMargin(2.0f, 2.0f, 2.0f, 0.0f))
-		.HAlign(HAlign_Right)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.AutoWidth()
-			[
-				NewPluginButton.ToSharedRef()
-			]
-			+ SHorizontalBox::Slot()
-			.Padding(FMargin(5, 0, 0, 0))
-			.AutoWidth()
-			[
-				SNew(SButton)
-				.ContentPadding(5)
-				.ToolTip(SNew(SToolTip).Text(LOCTEXT("DownloadPluginEnabled", "Click here to open the Download Plugin dialog.")))
-				.TextStyle(FEditorStyle::Get(), "LargeText")
-				.ButtonStyle(FEditorStyle::Get(), "FlatButton.Success")
-				.HAlign(HAlign_Center)
-				.Text(LOCTEXT("DownloadPluginLabel", "Download Plugin"))
-				.OnClicked_Lambda([=]
-				{
-					FGlobalTabmanager::Get()->TryInvokeTab(DownloadPluginTabId);
-					return FReply::Handled();
-				})
-			]
-		];
-#else
 		const TSharedPtr<SBorder> Border = GET_CHILD(SBorder, PluginBrowser, 0);
 		const TSharedPtr<SVerticalBox> VerticalBox = GET_CHILD(SVerticalBox, Border, 0);
 		const TSharedPtr<SHorizontalBox> HorizontalBox = GET_CHILD(SHorizontalBox, VerticalBox, 0);
@@ -247,7 +201,6 @@ public:
 				]
 			]
 		];
-#endif
 
 #undef GET_CHILD
 
