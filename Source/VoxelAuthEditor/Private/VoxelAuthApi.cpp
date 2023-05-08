@@ -92,13 +92,19 @@ void FVoxelAuthApi::Initialize()
 	{
 		TArray<FString> VersionAndPreview;
 		Branch.ParseIntoArray(VersionAndPreview, TEXT("p-"));
-		ensure(VersionAndPreview.Num() == 1 || VersionAndPreview.Num() == 2);
+		if (!ensure(VersionAndPreview.Num() == 1 || VersionAndPreview.Num() == 2))
+		{
+			return;
+		}
 
 		if (VersionAndPreview.Num() == 1)
 		{
 			TArray<FString> MinorMajorHotfix;
 			VersionAndPreview[0].ParseIntoArray(MinorMajorHotfix, TEXT("."));
-			ensure(MinorMajorHotfix.Num() == 3);
+			if (!ensure(MinorMajorHotfix.Num() == 3))
+			{
+				return;
+			}
 
 			Major = FCString::Atoi(*MinorMajorHotfix[0]);
 			Minor = FCString::Atoi(*MinorMajorHotfix[1]);
@@ -113,11 +119,17 @@ void FVoxelAuthApi::Initialize()
 
 			TArray<FString> MinorMajor;
 			VersionAndPreview[0].ParseIntoArray(MinorMajor, TEXT("."));
-			ensure(MinorMajor.Num() == 2);
+			if (!ensure(MinorMajor.Num() == 2))
+			{
+				return;
+			}
 
 			TArray<FString> PreviewAndHotfix;
 			VersionAndPreview[1].ParseIntoArray(PreviewAndHotfix, TEXT("."));
-			ensure(PreviewAndHotfix.Num() == 1 || PreviewAndHotfix.Num() == 2);
+			if (!ensure(PreviewAndHotfix.Num() == 1 || PreviewAndHotfix.Num() == 2))
+			{
+				return;
+			}
 
 			Major = FCString::Atoi(*MinorMajor[0]);
 			Minor = FCString::Atoi(*MinorMajor[1]);
