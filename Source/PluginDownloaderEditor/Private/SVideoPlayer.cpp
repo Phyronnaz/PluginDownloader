@@ -3,6 +3,7 @@
 #include "SVideoPlayer.h"
 #include "MediaPlayer.h"
 #include "MediaTexture.h"
+#include "Materials/Material.h"
 
 void SVideoPlayer::Construct(const FArguments& Args)
 {
