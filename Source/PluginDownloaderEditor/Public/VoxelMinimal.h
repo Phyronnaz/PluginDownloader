@@ -51,6 +51,7 @@
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SSplitter.h"
 #include "Widgets/Layout/SScaleBox.h"
+#include "Widgets/Input/SComboBox.h"
 #include "Widgets/Input/SEditableTextBox.h"
 
 #include "PluginDownloaderDefinitions.h"
