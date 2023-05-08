@@ -271,7 +271,7 @@ bool FVoxelAuthApi::IsProUpdated() const
 ///////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////
 
-FString FVoxelAuthApi::GetCounterName(int32 Counter) const
+FString FVoxelAuthApi::GetCounterName(const int32 Counter) const
 {
 	FVoxelPluginVersion Version;
 	Version.ParseCounter(Counter);

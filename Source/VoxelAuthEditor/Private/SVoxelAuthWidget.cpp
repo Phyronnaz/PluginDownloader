@@ -5,8 +5,18 @@
 #include "VoxelAuthApi.h"
 #include "VoxelAuthDownload.h"
 
+class IVoxelContentEditorModule : public IModuleInterface
+{
+public:
+	int32 Version = 0;
+
+	virtual void ShowContent() = 0;
+};
+
 void SVoxelAuthWidget::Construct(const FArguments& Args)
 {
+	IVoxelContentEditorModule* ContentEditor = FModuleManager::Get().LoadModulePtr<IVoxelContentEditorModule>("VoxelContentEditor");
+
 	GVoxelAuthApi->UpdateVersions();
 
 	if (GVoxelAuth->GetState() == EVoxelAuthState::Uninitialized)
@@ -285,7 +295,12 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 						IsLatest = " (not latest)";
 					}
 
-					return FText::FromString(GVoxelAuthApi->GetCounterName(GVoxelAuthApi->GetPluginCounter()) + IsLatest);
+					const FString Name = GVoxelAuthApi->GetCounterName(GVoxelAuthApi->GetPluginCounter());
+					if (Name == "Unknown")
+					{
+						return FText::FromString(Name);
+					}
+					return FText::FromString(Name + IsLatest);
 				})
 			]
 		]
@@ -476,7 +491,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 			[
 				DownloadVBox
 			]
-		];;
+		];
 
 	///////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////
@@ -697,6 +712,59 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 				+ SOverlay::Slot()
 				[
 					DetailsVBox
+				]
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(SVerticalBox)
+				.Visibility_Lambda([=]
+				{
+					return ContentEditor ? EVisibility::Visible : EVisibility::Collapsed;
+				})
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(0, 10, 0, 0)
+				[
+					SNew(SHorizontalBox)
+
+					+ SHorizontalBox::Slot()
+
+					+ SHorizontalBox::Slot()
+					.VAlign(VAlign_Center)
+					.AutoWidth()
+					[
+						SNew(SButton)
+						.OnClicked_Lambda([=]
+						{
+							ContentEditor->ShowContent();
+							return FReply::Handled();
+						})
+						.ContentPadding(FMargin(0, 5.f, 0, 4.f))
+						[
+							SNew(SHorizontalBox)
+							+ SHorizontalBox::Slot()
+							.HAlign(HAlign_Center)
+							.VAlign(VAlign_Center)
+							[
+								SNew(SImage)
+								.Image(FAppStyle::Get().GetBrush("MainFrame.VisitOnlineLearning"))
+								.ColorAndOpacity(FStyleColors::White)
+							]
+							+ SHorizontalBox::Slot()
+							.Padding(FMargin(5, 0, 0, 0))
+							.VAlign(VAlign_Center)
+							.AutoWidth()
+							[
+								SNew(STextBlock)
+								.TextStyle(FAppStyle::Get(), "SmallButtonText")
+								.Text(INVTEXT("Open Examples"))
+							]
+						]
+					]
+
+					+ SHorizontalBox::Slot()
 				]
 			]
 		]

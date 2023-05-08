@@ -119,6 +119,8 @@ struct FVoxelPluginVersion
 
 		Major = Counter % 10;
 		ensure(Counter == Major);
+
+		Type = PreviewWeek == 999 ? EType::Release : EType::Preview;
 	}
 
 	FString GetBranch() const
