@@ -1,6 +1,7 @@
 ﻿// Copyright Voxel Plugin, Inc. All Rights Reserved.
 
 #include "VoxelAuthDownload.h"
+#include "PluginDownloaderSettings.h"
 #include "PluginDownloaderUtilities.h"
 #include "VoxelAuth.h"
 #include "VoxelAuthApi.h"
@@ -214,7 +215,7 @@ void FVoxelAuthDownload::Download(const FString& Branch, const int32 Counter)
 						TotalSize += IFileManager::Get().FileSize(*File);
 					}
 
-					constexpr int64 MaxSize = 256 * 1024 * 1024;
+					const int64 MaxSize = FMath::Max<int64>(1, GetDefault<UPluginDownloaderSettings>()->VoxelPluginCacheSizeInMB) * 1024 * 1024;
 					if (TotalSize < MaxSize)
 					{
 						break;

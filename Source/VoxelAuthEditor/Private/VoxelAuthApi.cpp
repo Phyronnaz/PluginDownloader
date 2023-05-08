@@ -3,6 +3,7 @@
 #include "VoxelAuthApi.h"
 #include "VoxelAuth.h"
 #include "VoxelAuthDownload.h"
+#include "VoxelPluginVersion.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -83,89 +84,14 @@ void FVoxelAuthApi::Initialize()
 		return;
 	}
 
-	int32 Major = 0;
-	int32 Minor = 0;
-	int32 Hotfix = 0;
-	bool bIsPreview = false;
-	int32 PreviewWeek = 0;
-	int32 PreviewHotfix = 0;
+	FVoxelPluginVersion Version;
+	if (!ensure(Version.Parse(Branch)))
 	{
-		TArray<FString> VersionAndPreview;
-		Branch.ParseIntoArray(VersionAndPreview, TEXT("p-"));
-		if (!ensure(VersionAndPreview.Num() == 1 || VersionAndPreview.Num() == 2))
-		{
-			return;
-		}
-
-		if (VersionAndPreview.Num() == 1)
-		{
-			TArray<FString> MinorMajorHotfix;
-			VersionAndPreview[0].ParseIntoArray(MinorMajorHotfix, TEXT("."));
-			if (!ensure(MinorMajorHotfix.Num() == 3))
-			{
-				return;
-			}
-
-			Major = FCString::Atoi(*MinorMajorHotfix[0]);
-			Minor = FCString::Atoi(*MinorMajorHotfix[1]);
-			Hotfix = FCString::Atoi(*MinorMajorHotfix[2]);
-			ensure(FString::FromInt(Major) == MinorMajorHotfix[0]);
-			ensure(FString::FromInt(Minor) == MinorMajorHotfix[1]);
-			ensure(FString::FromInt(Hotfix) == MinorMajorHotfix[2]);
-		}
-		else
-		{
-			bIsPreview = true;
-
-			TArray<FString> MinorMajor;
-			VersionAndPreview[0].ParseIntoArray(MinorMajor, TEXT("."));
-			if (!ensure(MinorMajor.Num() == 2))
-			{
-				return;
-			}
-
-			TArray<FString> PreviewAndHotfix;
-			VersionAndPreview[1].ParseIntoArray(PreviewAndHotfix, TEXT("."));
-			if (!ensure(PreviewAndHotfix.Num() == 1 || PreviewAndHotfix.Num() == 2))
-			{
-				return;
-			}
-
-			Major = FCString::Atoi(*MinorMajor[0]);
-			Minor = FCString::Atoi(*MinorMajor[1]);
-			ensure(FString::FromInt(Major) == MinorMajor[0]);
-			ensure(FString::FromInt(Minor) == MinorMajor[1]);
-
-			PreviewWeek = FCString::Atoi(*PreviewAndHotfix[0]);
-			ensure(FString::FromInt(PreviewWeek) == PreviewAndHotfix[0]);
-
-			if (PreviewAndHotfix.Num() == 2)
-			{
-				PreviewHotfix = FCString::Atoi(*PreviewAndHotfix[1]);
-				ensure(FString::FromInt(PreviewHotfix) == PreviewAndHotfix[1]);
-			}
-		}
+		return;
 	}
 
-	int32 Counter = Major;
-	{
-		Counter *= 10;
-		Counter += Minor;
-
-		Counter *= 10;
-		Counter += bIsPreview ? 0 : Hotfix;
-
-		Counter *= 1000;
-		Counter += bIsPreview ? PreviewWeek : 999;
-
-		Counter *= 10;
-		Counter += bIsPreview ? PreviewHotfix : 0;
-
-		ensure(Plugin->GetDescriptor().Version == Counter);
-	}
-
-	PluginBranch = FString::FromInt(Major) + "." + FString::FromInt(Minor);
-	PluginCounter = Counter;
+	PluginBranch = Version.GetBranch();
+	PluginCounter = Version.GetCounter();
 
 	SelectedPluginBranch = PluginBranch;
 	SelectedPluginCounter = -1;
@@ -347,41 +273,9 @@ bool FVoxelAuthApi::IsProUpdated() const
 
 FString FVoxelAuthApi::GetCounterName(int32 Counter) const
 {
-	if (Counter == 0)
-	{
-		return "Unknown";
-	}
-
-	const int32 PreviewHotfix = Counter % 10;
-	Counter /= 10;
-
-	const int32 PreviewWeek = Counter % 1000;
-	Counter /= 1000;
-
-	const int32 Hotfix = Counter % 10;
-	Counter /= 10;
-
-	const int32 Minor = Counter % 10;
-	Counter /= 10;
-
-	const int32 Major = Counter % 10;
-	ensure(Counter == Major);
-
-	if (PreviewWeek != 999)
-	{
-		ensure(Hotfix == 0);
-		FString Result = FString::FromInt(Major) + "." + FString::FromInt(Minor) + "p-" + FString::FromInt(PreviewWeek);
-		if (PreviewHotfix != 0)
-		{
-			Result += "." + FString::FromInt(PreviewHotfix);
-		}
-		return Result;
-	}
-	else
-	{
-		ensure(PreviewHotfix == 0);
-		return FString::FromInt(Major) + "." + FString::FromInt(Minor) + "." + FString::FromInt(Hotfix);
-	}
+	FVoxelPluginVersion Version;
+	Version.ParseCounter(Counter);
+	return Version.ToString();
 }
 
 void FVoxelAuthApi::OpenReleaseNotes(const int32 Counter) const

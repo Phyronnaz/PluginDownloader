@@ -24,6 +24,9 @@ public:
 	UPROPERTY(Config, EditAnywhere, Category = "Plugin Downloader")
     bool bShowVoxelPluginMenu = true;
 
+	UPROPERTY(Config, EditAnywhere, Category = "Plugin Downloader")
+    int32 VoxelPluginCacheSizeInMB = 1024;
+
     //~ Begin UDeveloperSettings Interface
     virtual FName GetContainerName() const override;
     virtual void PostInitProperties() override;
