@@ -157,110 +157,61 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 		.AutoHeight()
 		.Padding(0, 0, 0, 10);
 
-	GVoxelAuthApi->UpdateComboBoxes();
-
-	const TSharedRef<SComboBox<TSharedPtr<FString>>> BranchComboBox =
-		SNew(SComboBox<TSharedPtr<FString>>)
-		.OptionsSource(&GVoxelAuthApi->Branches)
-		.OnGenerateWidget_Lambda([](const TSharedPtr<FString>& Item) -> TSharedRef<SWidget>
+	const TSharedRef<SComboBox<TSharedPtr<FVoxelPluginVersion>>> VersionComboBox =
+		SNew(SComboBox<TSharedPtr<FVoxelPluginVersion>>)
+		.OptionsSource(&GVoxelAuthApi->AllVersions)
+		.OnGenerateWidget_Lambda([](const TSharedPtr<FVoxelPluginVersion>& Item) -> TSharedRef<SWidget>
 		{
 			if (!ensure(Item))
 			{
 				return SNullWidget::NullWidget;
 			}
-
-			return SNew(STextBlock).Text(FText::FromString(*Item));
+			return SNew(STextBlock).Text(Item->ToDisplayString());
 		})
-		.OnSelectionChanged_Lambda([](const TSharedPtr<FString>& Item, ESelectInfo::Type)
+		.OnSelectionChanged_Lambda([](const TSharedPtr<FVoxelPluginVersion>& Item, ESelectInfo::Type)
 		{
 			if (!ensure(Item))
 			{
 				return;
 			}
-
-			GVoxelAuthApi->SelectedPluginBranch = *Item;
-			GVoxelAuthApi->UpdateComboBoxes();
+			GVoxelAuthApi->SelectedVersion = *Item;
 		})
 		[
 			SNew(STextBlock)
 			.Text_Lambda([]
 			{
-				return FText::FromString(GVoxelAuthApi->SelectedPluginBranch);
+				return GVoxelAuthApi->SelectedVersion.ToDisplayString();
 			})
 		];
 
-	const TSharedRef<SComboBox<TSharedPtr<int32>>> VersionComboBox =
-		SNew(SComboBox<TSharedPtr<int32>>)
-		.OptionsSource(&GVoxelAuthApi->Counters)
-		.OnGenerateWidget_Lambda([](const TSharedPtr<int32>& Item)
-		{
-			if (*Item == -1)
-			{
-				return SNew(STextBlock).Text(INVTEXT("latest"));
-			}
-
-			return SNew(STextBlock).Text(FText::FromString(GVoxelAuthApi->GetCounterName(*Item)));
-		})
-		.OnSelectionChanged_Lambda([](const TSharedPtr<int32>& Item, ESelectInfo::Type)
-		{
-			GVoxelAuthApi->SelectedPluginCounter = *Item;
-		})
-		[
-			SNew(STextBlock)
-			.Text_Lambda([]
-			{
-				if (GVoxelAuthApi->SelectedPluginCounter == -1)
-				{
-					int32 Max = -1;
-					for (const TSharedPtr<int32>& Counter : GVoxelAuthApi->Counters)
-					{
-						Max = FMath::Max(Max, *Counter);
-					}
-					return FText::FromString("latest (" + GVoxelAuthApi->GetCounterName(Max) + ")");
-				}
-
-				return FText::FromString(GVoxelAuthApi->GetCounterName(GVoxelAuthApi->SelectedPluginCounter));
-			})
-		];
-
-	GVoxelAuthApi->OnComboBoxesUpdated.AddSP(BranchComboBox, &SComboBox<TSharedPtr<FString>>::RefreshOptions);
-	GVoxelAuthApi->OnComboBoxesUpdated.AddSP(VersionComboBox, &SComboBox<TSharedPtr<int32>>::RefreshOptions);
+	GVoxelAuthApi->OnComboBoxesUpdated.AddSP(VersionComboBox, &SComboBox<TSharedPtr<FVoxelPluginVersion>>::RefreshOptions);
 
 	const auto IsDownloadEnabled = []
 	{
-		const TArray<int32>* Versions = GVoxelAuthApi->GetVersions().Find(GVoxelAuthApi->SelectedPluginBranch);
-		if (!Versions)
+		if (GVoxelAuthApi->SelectedVersion == GVoxelAuthApi->PluginVersion)
 		{
 			return false;
 		}
 
-		if (GVoxelAuthApi->SelectedPluginCounter == -1)
+		for (const TSharedPtr<FVoxelPluginVersion>& Version : GVoxelAuthApi->AllVersions)
 		{
-			if (GVoxelAuthApi->SelectedPluginBranch == GVoxelAuthApi->GetPluginBranch() &&
-				Versions->Last() == GVoxelAuthApi->GetPluginCounter())
+			if (!ensure(Version))
 			{
-				return false;
+				continue;
 			}
-
-			return true;
-		}
-		else
-		{
-			if (GVoxelAuthApi->SelectedPluginBranch == GVoxelAuthApi->GetPluginBranch() &&
-				GVoxelAuthApi->SelectedPluginCounter == GVoxelAuthApi->GetPluginCounter())
+			if (GVoxelAuthApi->SelectedVersion == *Version)
 			{
-				return false;
+				return true;
 			}
-
-			return Versions->Contains(GVoxelAuthApi->SelectedPluginCounter);
 		}
+		return false;
 	};
 
 	const TSharedRef<SVerticalBox> DownloadVBox =
 		SNew(SVerticalBox)
 		.Visibility_Lambda([]
 		{
-			return GVoxelAuthApi->IsPro() && GVoxelAuthApi->GetBranches().Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
+			return GVoxelAuthApi->IsPro() && GVoxelAuthApi->AllVersions.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
 		})
 		
 		+ SVerticalBox::Slot()
@@ -284,46 +235,14 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 				SNew(STextBlock)
 				.Text_Lambda([=]
 				{
-					FString IsLatest;
-					if (GVoxelAuthApi->GetVersions().Contains(GVoxelAuthApi->GetPluginBranch()) &&
-						GVoxelAuthApi->GetVersions()[GVoxelAuthApi->GetPluginBranch()].Last() == GVoxelAuthApi->GetPluginCounter())
+					if (GVoxelAuthApi->SelectedVersion.Type == FVoxelPluginVersion::EType::Unknown)
 					{
-						IsLatest = " (latest)";
-					}
-					else
-					{
-						IsLatest = " (not latest)";
+						return INVTEXT("Unknown");
 					}
 
-					const FString Name = GVoxelAuthApi->GetCounterName(GVoxelAuthApi->GetPluginCounter());
-					if (Name == "Unknown")
-					{
-						return FText::FromString(Name);
-					}
-					return FText::FromString(Name + IsLatest);
+					const bool bIsLatest = GVoxelAuthApi->GetPluginState() == FVoxelAuthApi::EState::NoUpdate;
+					return FText::FromString(GVoxelAuthApi->SelectedVersion.ToDisplayString().ToString() + (bIsLatest ? " (latest)" : " (not latest)"));
 				})
-			]
-		]
-		
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(0, 10, 0, 0)
-		[
-			SNew(SHorizontalBox)
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			.Padding(0, 0, 10, 0)
-			[
-				SNew(STextBlock)
-				.Text(INVTEXT("Branch"))
-			]
-			+ SHorizontalBox::Slot()
-			.VAlign(VAlign_Center)
-			.AutoWidth()
-			.Padding(0, 0, 10, 0)
-			[
-				BranchComboBox
 			]
 		]
 		
@@ -365,21 +284,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 				.IsEnabled_Lambda(IsDownloadEnabled)
 				.OnClicked_Lambda([=]
 				{
-					const TArray<int32>* Versions = GVoxelAuthApi->GetVersions().Find(GVoxelAuthApi->SelectedPluginBranch);
-					if (!Versions)
-					{
-						return FReply::Handled();
-					}
-
-					if (GVoxelAuthApi->SelectedPluginCounter == -1)
-					{
-						GVoxelAuthDownload->Download(GVoxelAuthApi->SelectedPluginBranch, Versions->Last());
-					}
-					else
-					{
-						GVoxelAuthDownload->Download(GVoxelAuthApi->SelectedPluginBranch, GVoxelAuthApi->SelectedPluginCounter);
-					}
-
+					GVoxelAuthDownload->Download(GVoxelAuthApi->SelectedVersion);
 					return FReply::Handled();
 				})
 				.ContentPadding(FMargin(0, 5.f, 0, 4.f))
@@ -415,21 +320,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 				.IsEnabled_Lambda(IsDownloadEnabled)
 				.OnClicked_Lambda([=]
 				{
-					const TArray<int32>* Versions = GVoxelAuthApi->GetVersions().Find(GVoxelAuthApi->SelectedPluginBranch);
-					if (!Versions)
-					{
-						return FReply::Handled();
-					}
-
-					if (GVoxelAuthApi->SelectedPluginCounter == -1)
-					{
-						GVoxelAuthApi->OpenReleaseNotes(Versions->Last());
-					}
-					else
-					{
-						GVoxelAuthApi->OpenReleaseNotes(GVoxelAuthApi->SelectedPluginCounter);
-					}
-
+					GVoxelAuthApi->OpenReleaseNotes(GVoxelAuthApi->SelectedVersion);
 					return FReply::Handled();
 				})
 				.ContentPadding(FMargin(0, 5.f, 0, 4.f))
@@ -484,7 +375,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 				SNew(SThrobber)
 				.Visibility_Lambda([]
 				{
-					return GVoxelAuthApi->GetBranches().Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed;
+					return GVoxelAuthApi->AllVersions.Num() == 0 ? EVisibility::Visible : EVisibility::Collapsed;
 				})
 			]
 			+ SOverlay::Slot()

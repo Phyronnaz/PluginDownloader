@@ -2,7 +2,7 @@
 
 #pragma once
 
-#include "VoxelMinimal.h"
+#include "CoreMinimal.h"
 
 struct FVoxelPluginVersion
 {
@@ -15,6 +15,14 @@ struct FVoxelPluginVersion
 	};
 	EType Type = EType::Unknown;
 
+	enum class EPlatform
+	{
+		Unknown,
+		Win64,
+		Mac
+	};
+	EPlatform Platform = EPlatform::Unknown;
+
     int32 Major = 0;
     int32 Minor = 0;
     int32 Hotfix = 0;
@@ -22,9 +30,48 @@ struct FVoxelPluginVersion
     int32 PreviewHotfix = 0;
 
 	int32 DevCounter = 0;
+	bool bDebug = false;
+	int32 EngineVersion = 0;
 
-	bool Parse(const FString& Version)
+	bool operator==(const FVoxelPluginVersion& Other) const
 	{
+		return
+			Type == Other.Type &&
+			Platform == Other.Platform &&
+			Major == Other.Major &&
+			Minor == Other.Minor &&
+			Hotfix == Other.Hotfix &&
+			PreviewWeek == Other.PreviewWeek &&
+			PreviewHotfix == Other.PreviewHotfix &&
+			DevCounter == Other.DevCounter &&
+			bDebug == Other.bDebug &&
+			EngineVersion == Other.EngineVersion;
+	}
+
+	bool Parse(FString Version)
+	{
+		if (Version.RemoveFromEnd("-debug"))
+		{
+			bDebug = true;
+		}
+		if (Version.RemoveFromEnd("-Win64"))
+		{
+			Platform = EPlatform::Win64;
+		}
+		if (Version.RemoveFromEnd("-Mac"))
+		{
+			Platform = EPlatform::Mac;
+		}
+
+		for (int32 EngineMinor = 0; EngineMinor < 99; EngineMinor++)
+		{
+			if (Version.RemoveFromEnd("-" + FString::FromInt(500 + EngineMinor)))
+			{
+				EngineVersion = 500 + EngineMinor;
+				break;
+			}
+		}
+
 #define CHECK(...) if (!ensure(__VA_ARGS__)) { return false; }
 
 		if (Version.StartsWith("dev"))
@@ -122,7 +169,6 @@ struct FVoxelPluginVersion
 
 		Type = PreviewWeek == 999 ? EType::Release : EType::Preview;
 	}
-
 	FString GetBranch() const
 	{
 		if (Type == EType::Unknown)
@@ -162,25 +208,65 @@ struct FVoxelPluginVersion
 
 		return Counter;
 	}
-	FString ToString() const
+	FString ToString(
+		const bool bPrintEngineVersion = true,
+		const bool bPrintPlatform = true,
+		const bool bPrintDebug = true) const
 	{
+		FString Result;
 		if (Type == EType::Unknown)
 		{
 			return "Unknown";
 		}
 		else if (Type == EType::Release)
 		{
-			return FString::Printf(TEXT("%d.%d.%d"), Major, Minor, Hotfix);
+			Result = FString::Printf(TEXT("%d.%d.%d"), Major, Minor, Hotfix);
 		}
 		else if (Type == EType::Preview)
 		{
 			ensure(Hotfix == 0);
-			return FString::Printf(TEXT("%d.%dp-%d.%d"), Major, Minor, PreviewWeek, PreviewHotfix);
+			Result = FString::Printf(TEXT("%d.%dp-%d.%d"), Major, Minor, PreviewWeek, PreviewHotfix);
 		}
 		else
 		{
 			check(Type == EType::Dev);
-			return FString::Printf(TEXT("dev-%d"), DevCounter);
+			Result = FString::Printf(TEXT("dev-%d"), DevCounter);
 		}
+
+		if (bPrintEngineVersion)
+		{
+			Result += "-" + FString::FromInt(EngineVersion);
+		}
+
+		if (bPrintPlatform)
+		{
+			if (Platform == EPlatform::Unknown)
+			{
+				// Nothing
+			}
+			else if (Platform == EPlatform::Win64)
+			{
+				Result += "-Win64";
+			}
+			else
+			{
+				ensure(Platform == EPlatform::Mac);
+				Result += "-Mac";
+			}
+		}
+
+		if (bPrintDebug)
+		{
+			if (bDebug)
+			{
+				Result += "-debug";
+			}
+		}
+
+		return Result;
+	}
+	FText ToDisplayString() const
+	{
+		return FText::FromString(ToString(false, false, true));
 	}
 };

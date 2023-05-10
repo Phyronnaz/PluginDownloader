@@ -3,7 +3,7 @@
 #include "VoxelAuthApi.h"
 #include "VoxelAuth.h"
 #include "VoxelAuthDownload.h"
-#include "VoxelPluginVersion.h"
+#include "PluginDownloaderSettings.h"
 #include "HttpModule.h"
 #include "Interfaces/IHttpResponse.h"
 #include "Widgets/Notifications/SNotificationList.h"
@@ -11,66 +11,9 @@
 
 FVoxelAuthApi* GVoxelAuthApi = nullptr;
 
-void FVoxelAuthApi::UpdateComboBoxes()
-{
-	// Make sure to preserve shared ptrs for combo boxes
-
-	TMap<FString, TSharedPtr<FString>> BranchPtrs;
-	TMap<int32, TSharedPtr<int32>> CounterPtrs;
-
-	for (const TSharedPtr<FString>& Branch : Branches)
-	{
-		BranchPtrs.Add(*Branch, Branch);
-	}
-	for (const TSharedPtr<int32>& Counter : Counters)
-	{
-		CounterPtrs.Add(*Counter, Counter);
-	}
-
-	const auto GetBranch = [&](const FString& Branch)
-	{
-		if (!BranchPtrs.Contains(Branch))
-		{
-			BranchPtrs.Add(Branch, MakeShared<FString>(Branch));
-		}
-		return BranchPtrs[Branch].ToSharedRef();
-	};
-	const auto GetCounter = [&](const int32 Counter)
-	{
-		if (!CounterPtrs.Contains(Counter))
-		{
-			CounterPtrs.Add(Counter, MakeShared<int32>(Counter));
-		}
-		return CounterPtrs[Counter].ToSharedRef();
-	};
-
-	Branches.Reset();
-	Counters.Reset();
-
-	Counters.Add(GetCounter(-1));
-
-	for (const auto& It : Versions)
-	{
-		Branches.Add(GetBranch(It.Key));
-
-		if (It.Key == SelectedPluginBranch)
-		{
-			for (const int32 Counter : It.Value)
-			{
-				Counters.Add(GetCounter(Counter));
-			}
-		}
-	}
-
-	OnComboBoxesUpdated.Broadcast();
-}
-
 void FVoxelAuthApi::Initialize()
 {
 	UpdateVersions();
-
-	SelectedPluginBranch = "2.0";
-	SelectedPluginCounter = -1;
 
 	const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("Voxel");
 	if (!Plugin)
@@ -84,17 +27,7 @@ void FVoxelAuthApi::Initialize()
 		return;
 	}
 
-	FVoxelPluginVersion Version;
-	if (!ensure(Version.Parse(Branch)))
-	{
-		return;
-	}
-
-	PluginBranch = Version.GetBranch();
-	PluginCounter = Version.GetCounter();
-
-	SelectedPluginBranch = PluginBranch;
-	SelectedPluginCounter = -1;
+	ensure(PluginVersion.Parse(Branch));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -267,20 +200,9 @@ bool FVoxelAuthApi::IsProUpdated() const
 	return ProAccountIds.Contains(GVoxelAuth->GetAccountId());
 }
 
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-///////////////////////////////////////////////////////////////////////////////
-
-FString FVoxelAuthApi::GetCounterName(const int32 Counter) const
+void FVoxelAuthApi::OpenReleaseNotes(const FVoxelPluginVersion& Version) const
 {
-	FVoxelPluginVersion Version;
-	Version.ParseCounter(Counter);
-	return Version.ToString();
-}
-
-void FVoxelAuthApi::OpenReleaseNotes(const int32 Counter) const
-{
-	const FString Url = "https://docs.voxelplugin.com/release-notes#" + GetCounterName(Counter);
+	const FString Url = "https://docs.voxelplugin.com/release-notes#" + Version.ToString(false, false, false);
 	FPlatformProcess::LaunchURL(*Url, nullptr, nullptr);
 }
 
@@ -290,17 +212,24 @@ void FVoxelAuthApi::OpenReleaseNotes(const int32 Counter) const
 
 FVoxelAuthApi::EState FVoxelAuthApi::GetPluginState() const
 {
-	if (PluginBranch.IsEmpty())
+	if (PluginVersion.Type == FVoxelPluginVersion::EType::Unknown)
 	{
 		return EState::NotInstalled;
 	}
 
-	if (!Versions.Contains(PluginBranch))
+	for (const TSharedPtr<FVoxelPluginVersion>& Version : GVoxelAuthApi->AllVersions)
 	{
-		return EState::NoUpdate;
+		if (!ensure(Version))
+		{
+			continue;
+		}
+		if (Version->GetBranch() == GVoxelAuthApi->SelectedVersion.GetBranch() &&
+			Version->GetCounter() > GVoxelAuthApi->SelectedVersion.GetCounter())
+		{
+			return EState::HasUpdate;
+		}
 	}
-
-	return Versions[PluginBranch].Last() > PluginCounter ? EState::HasUpdate : EState::NoUpdate;
+	return EState::NoUpdate;
 }
 
 FString FVoxelAuthApi::GetAppDataPath() const
@@ -356,44 +285,63 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 		return;
 	}
 
-	const TSharedPtr<FJsonObject> ArrayObject = ParsedValue->AsObject();
-	if (!ensure(ArrayObject))
+	TArray<TSharedPtr<FVoxelPluginVersion>> NewVersions;
+	for (const TSharedPtr<FJsonValue>& Value : ParsedValue->AsArray())
 	{
-		return;
+		const FString VersionString = Value->AsString();
+
+		FVoxelPluginVersion Version;
+		if (!ensure(Version.Parse(VersionString)))
+		{
+			continue;
+		}
+
+		if (Version.Type == FVoxelPluginVersion::EType::Dev &&
+			!GetDefault<UPluginDownloaderSettings>()->bShowVoxelPluginDevVersions)
+		{
+			continue;
+		}
+
+		if (Version.EngineVersion != ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION)
+		{
+			continue;
+		}
+
+#if PLATFORM_WINDOWS
+		if (Version.Platform != FVoxelPluginVersion::EPlatform::Win64)
+		{
+			continue;
+		}
+#endif
+#if PLATFORM_MAC
+		if (Version.Platform != FVoxelPluginVersion::EPlatform::Mac)
+		{
+			continue;
+		}
+#endif
+
+		NewVersions.Add(MakeShared<FVoxelPluginVersion>(Version));
 	}
 
-	Versions.Reset();
-
-	for (const auto& It : ArrayObject->Values)
+	if (AllVersions.Num() != NewVersions.Num())
 	{
-		const TArray<TSharedPtr<FJsonValue>> Array = It.Value->AsArray();
-		for (const TSharedPtr<FJsonValue>& Value : Array)
+		AllVersions = NewVersions;
+		OnComboBoxesUpdated.Broadcast();
+	}
+	else
+	{
+		for (int32 Index = 0; Index < AllVersions.Num(); Index++)
 		{
-			const TSharedPtr<FJsonObject> VersionObject = Value->AsObject();
-			if (!ensure(VersionObject))
+			if (*AllVersions[Index] == *NewVersions[Index])
 			{
 				continue;
 			}
 
-			const int32 Counter = VersionObject->GetNumberField("counter");
-			const int32 UnrealVersion = VersionObject->GetNumberField("unrealVersion");
-
-			if (!ensure(Counter != 0) ||
-				UnrealVersion != ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION)
-			{
-				continue;
-			}
-
-			Versions.FindOrAdd(It.Key).Add(Counter);
+			AllVersions = NewVersions;
+			OnComboBoxesUpdated.Broadcast();
+			break;
 		}
 	}
-
-	for (auto& It : Versions)
-	{
-		It.Value.Sort();
-	}
-
-	UpdateComboBoxes();
 
 	static bool bDisplayedNotification = false;
 	if (bDisplayedNotification)
@@ -402,18 +350,29 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 	}
 	bDisplayedNotification = true;
 
-	if (GetPluginState() != EState::HasUpdate ||
-		!Versions.Contains(PluginBranch))
+	if (GetPluginState() != EState::HasUpdate)
 	{
 		return;
 	}
 
-	const int32 Latest = Versions[PluginBranch].Last();
+	FVoxelPluginVersion Latest = GVoxelAuthApi->SelectedVersion;
+	for (const TSharedPtr<FVoxelPluginVersion>& Version : GVoxelAuthApi->AllVersions)
+	{
+		if (!ensure(Version))
+		{
+			continue;
+		}
+		if (Version->GetBranch() == Latest.GetBranch() &&
+			Version->GetCounter() > Latest.GetCounter())
+		{
+			Latest = *Version;
+		}
+	}
 
 	FString String;
 	if (GConfig->GetString(
 		TEXT("VoxelPlugin_SkippedVersions"),
-		*FString::FromInt(Latest),
+		*Latest.ToString(),
 		String,
 		GEditorPerProjectIni) &&
 		String == "1")
@@ -423,9 +382,7 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 
 	const TSharedRef<TWeakPtr<SNotificationItem>> WeakNotification = MakeShared<TWeakPtr<SNotificationItem>>();
 
-	FNotificationInfo Info(FText::Format(
-		INVTEXT("A new Voxel Plugin release is available: {0}"),
-		FText::FromString(GetCounterName(Latest))));
+	FNotificationInfo Info(FText::Format(INVTEXT("A new Voxel Plugin release is available: {0}"), Latest.ToDisplayString()));
 
 	Info.bFireAndForget = false;
 	Info.ExpireDuration = 0.f;
@@ -438,7 +395,7 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 	{
 		GConfig->SetString(
 			TEXT("VoxelPlugin_SkippedVersions"),
-			*FString::FromInt(Latest),
+			*Latest.ToString(),
 			NewState == ECheckBoxState::Checked ? TEXT("1") : TEXT("0"),
 			GEditorPerProjectIni);
 	});
@@ -448,7 +405,7 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 		INVTEXT("Update Voxel Plugin to latest"),
 		FSimpleDelegate::CreateLambda([=]
 		{
-			GVoxelAuthDownload->Download(PluginBranch, Latest);
+			GVoxelAuthDownload->Download(Latest);
 
 			const TSharedPtr<SNotificationItem> Notification = WeakNotification->Pin();
 			if (!ensure(Notification))

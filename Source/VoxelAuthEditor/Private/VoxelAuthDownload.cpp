@@ -11,7 +11,7 @@
 
 FVoxelAuthDownload* GVoxelAuthDownload = nullptr;
 
-void FVoxelAuthDownload::Download(const FString& Branch, const int32 Counter)
+void FVoxelAuthDownload::Download(const FVoxelPluginVersion& Version)
 {
 	if (GVoxelAuth->GetState() == EVoxelAuthState::Uninitialized)
 	{
@@ -39,7 +39,7 @@ void FVoxelAuthDownload::Download(const FString& Branch, const int32 Counter)
 			if (GVoxelAuth->GetState() == EVoxelAuthState::LoggedIn)
 			{
 				LoginNotification->ExpireAndFadeout();
-				Download(Branch, Counter);
+				Download(Version);
 				return false;
 			}
 
@@ -107,16 +107,14 @@ void FVoxelAuthDownload::Download(const FString& Branch, const int32 Counter)
 		return;
 	}
 
-	FNotificationInfo Info(FText::FromString("Downloading Voxel Plugin " + GVoxelAuthApi->GetCounterName(Counter)));
+	FNotificationInfo Info(FText::FromString("Downloading Voxel Plugin " + Version.ToDisplayString().ToString()));
 	Info.bFireAndForget = false;
 	Notification = FSlateNotificationManager::Get().AddNotification(Info);
 
 	GVoxelAuthApi->MakeRequest(
 		"version/download",
 		{
-			{ "branch", Branch },
-			{ "counter", FString::FromInt(Counter) },
-			{ "unrealVersion", FString::FromInt(ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION) },
+			{ "version", Version.ToString() },
 		},
 		FVoxelAuthApi::ERequestVerb::Get,
 		true,

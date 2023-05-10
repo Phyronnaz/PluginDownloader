@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelMinimal.h"
+#include "VoxelPluginVersion.h"
 #include "Interfaces/IHttpRequest.h"
 
 class FVoxelAuthApi;
@@ -12,15 +13,11 @@ extern FVoxelAuthApi* GVoxelAuthApi;
 class FVoxelAuthApi
 {
 public:
-	FString SelectedPluginBranch;
-	int32 SelectedPluginCounter = 0;
-
-	TArray<TSharedPtr<FString>> Branches;
-	TArray<TSharedPtr<int32>> Counters;
+	TArray<TSharedPtr<FVoxelPluginVersion>> AllVersions;
+	FVoxelPluginVersion SelectedVersion;
+	FVoxelPluginVersion PluginVersion;
 
 	FSimpleMulticastDelegate OnComboBoxesUpdated;
-
-	void UpdateComboBoxes();
 
 public:
     FVoxelAuthApi() = default;
@@ -34,9 +31,7 @@ public:
 
     bool IsPro() const;
 	bool IsProUpdated() const;
-
-	FString GetCounterName(int32 Counter) const;
-	void OpenReleaseNotes(int32 Counter) const;
+	void OpenReleaseNotes(const FVoxelPluginVersion& Version) const;
 
 	bool IsVerifyingGumroadKey() const
 	{
@@ -46,23 +41,6 @@ public:
     {
 	    return bIsVerifyingMarketplace;
     }
-	const TArray<TSharedPtr<FString>>& GetBranches() const
-	{
-		return Branches;
-	}
-	const TMap<FString, TArray<int32>>& GetVersions() const
-	{
-		return Versions;
-	}
-
-	const FString& GetPluginBranch() const
-	{
-		return PluginBranch;
-	}
-	int32 GetPluginCounter() const
-	{
-		return PluginCounter;
-	}
 
     enum class EState
     {
@@ -93,10 +71,6 @@ private:
 	bool bIsUpdatingIsPro = false;
 
 	TMap<FString, bool> ProAccountIds;
-	TMap<FString, TArray<int32>> Versions;
-
-	FString PluginBranch;
-	int32 PluginCounter = 0;
 
 	void UpdateVersions(const FString& VersionsString);
 };

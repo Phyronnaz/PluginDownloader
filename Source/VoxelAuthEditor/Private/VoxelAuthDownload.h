@@ -3,6 +3,7 @@
 #pragma once
 
 #include "VoxelMinimal.h"
+#include "VoxelPluginVersion.h"
 
 class FVoxelAuthDownload;
 
@@ -11,7 +12,7 @@ extern FVoxelAuthDownload* GVoxelAuthDownload;
 class FVoxelAuthDownload
 {
 public:
-	void Download(const FString& Branch, int32 Counter);
+	void Download(const FVoxelPluginVersion& Version);
 
 private:
 	TSharedPtr<SNotificationItem> Notification;
