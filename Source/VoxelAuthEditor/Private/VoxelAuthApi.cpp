@@ -27,7 +27,17 @@ void FVoxelAuthApi::Initialize()
 		return;
 	}
 
-	ensure(PluginVersion.Parse(Branch));
+	if (!ensure(PluginVersion.Parse(Branch)))
+	{
+		return;
+	}
+
+	PluginVersion.EngineVersion = ENGINE_MAJOR_VERSION * 100 + ENGINE_MINOR_VERSION;
+#if PLATFORM_WINDOWS
+	PluginVersion.Platform = FVoxelPluginVersion::EPlatform::Win64;
+#elif PLATFORM_MAC
+	PluginVersion.Platform = FVoxelPluginVersion::EPlatform::Mac;
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -312,8 +322,7 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 		{
 			continue;
 		}
-#endif
-#if PLATFORM_MAC
+#elif PLATFORM_MAC
 		if (Version.Platform != FVoxelPluginVersion::EPlatform::Mac)
 		{
 			continue;
@@ -340,6 +349,23 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 			AllVersions = NewVersions;
 			OnComboBoxesUpdated.Broadcast();
 			break;
+		}
+	}
+
+	if (SelectedVersion.Type == FVoxelPluginVersion::EType::Unknown)
+	{
+		for (const TSharedPtr<FVoxelPluginVersion>& Version : AllVersions)
+		{
+			if (PluginVersion.Type != FVoxelPluginVersion::EType::Unknown &&
+				PluginVersion.GetBranch() != Version->GetBranch())
+			{
+				continue;
+			}
+
+			if (Version->GetCounter() > SelectedVersion.GetCounter())
+			{
+				SelectedVersion = *Version;
+			}
 		}
 	}
 

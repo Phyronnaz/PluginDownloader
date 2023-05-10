@@ -235,13 +235,13 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 				SNew(STextBlock)
 				.Text_Lambda([=]
 				{
-					if (GVoxelAuthApi->SelectedVersion.Type == FVoxelPluginVersion::EType::Unknown)
+					if (GVoxelAuthApi->PluginVersion.Type == FVoxelPluginVersion::EType::Unknown)
 					{
 						return INVTEXT("Unknown");
 					}
 
 					const bool bIsLatest = GVoxelAuthApi->GetPluginState() == FVoxelAuthApi::EState::NoUpdate;
-					return FText::FromString(GVoxelAuthApi->SelectedVersion.ToDisplayString().ToString() + (bIsLatest ? " (latest)" : " (not latest)"));
+					return FText::FromString(GVoxelAuthApi->PluginVersion.ToDisplayString().ToString() + (bIsLatest ? " (latest)" : " (not latest)"));
 				})
 			]
 		]
