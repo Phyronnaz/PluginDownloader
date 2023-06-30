@@ -147,7 +147,7 @@ void FVoxelAuthApi::VerifyGumroadKey(const FString& GumroadKey)
 				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Response->GetContentAsString()), &Title);
 				return;
 			}
-			
+
 			ProAccountIds.FindOrAdd(AccountId) |= Response->GetContentAsString() == "true";
 		}));
 }
@@ -212,7 +212,7 @@ bool FVoxelAuthApi::IsProUpdated() const
 
 void FVoxelAuthApi::OpenReleaseNotes(const FVoxelPluginVersion& Version) const
 {
-	const FString Url = "https://docs.voxelplugin.com/release-notes#" + Version.ToString(false, false, false);
+	const FString Url = "https://docs.voxelplugin.com/release-notes#" + Version.ToString_API();
 	FPlatformProcess::LaunchURL(*Url, nullptr, nullptr);
 }
 
@@ -398,7 +398,7 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 	FString String;
 	if (GConfig->GetString(
 		TEXT("VoxelPlugin_SkippedVersions"),
-		*Latest.ToString(),
+		*Latest.ToString_MajorMinor(),
 		String,
 		GEditorPerProjectIni) &&
 		String == "1")
@@ -408,7 +408,7 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 
 	const TSharedRef<TWeakPtr<SNotificationItem>> WeakNotification = MakeShared<TWeakPtr<SNotificationItem>>();
 
-	FNotificationInfo Info(FText::Format(INVTEXT("A new Voxel Plugin release is available: {0}"), Latest.ToDisplayString()));
+	FNotificationInfo Info(FText::Format(INVTEXT("A new Voxel Plugin release is available: {0}"), FText::FromString(Latest.ToString_UserFacing())));
 
 	Info.bFireAndForget = false;
 	Info.ExpireDuration = 0.f;
@@ -421,7 +421,7 @@ void FVoxelAuthApi::UpdateVersions(const FString& VersionsString)
 	{
 		GConfig->SetString(
 			TEXT("VoxelPlugin_SkippedVersions"),
-			*Latest.ToString(),
+			*Latest.ToString_MajorMinor(),
 			NewState == ECheckBoxState::Checked ? TEXT("1") : TEXT("0"),
 			GEditorPerProjectIni);
 	});
