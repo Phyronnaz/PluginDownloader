@@ -30,6 +30,7 @@ struct FVoxelPluginVersion
     int32 PreviewHotfix = 0;
 
 	int32 DevCounter = 0;
+	bool bNoSource = false;
 	bool bDebug = false;
 	int32 EngineVersion = 0;
 
@@ -44,16 +45,36 @@ struct FVoxelPluginVersion
 			PreviewWeek == Other.PreviewWeek &&
 			PreviewHotfix == Other.PreviewHotfix &&
 			DevCounter == Other.DevCounter &&
+			bNoSource == Other.bNoSource &&
 			bDebug == Other.bDebug &&
 			EngineVersion == Other.EngineVersion;
 	}
 
 	bool Parse(FString Version)
 	{
+		if (Version.RemoveFromEnd(" (No source)"))
+		{
+			bNoSource = true;
+		}
+		if (Version.RemoveFromEnd(" (debug)"))
+		{
+			bDebug = true;
+		}
+		if (Version.RemoveFromEnd(" (No source, debug)"))
+		{
+			bNoSource = true;
+			bDebug = true;
+		}
+
 		if (Version.RemoveFromEnd("-debug"))
 		{
 			bDebug = true;
 		}
+		if (Version.RemoveFromEnd("-nosource"))
+		{
+			bNoSource = true;
+		}
+
 		if (Version.RemoveFromEnd("-Win64"))
 		{
 			Platform = EPlatform::Win64;
@@ -209,9 +230,10 @@ struct FVoxelPluginVersion
 		return Counter;
 	}
 	FString ToString(
-		const bool bPrintEngineVersion = true,
-		const bool bPrintPlatform = true,
-		const bool bPrintDebug = true) const
+		const bool bPrintEngineVersion,
+		const bool bPrintPlatform,
+		const bool bPrintNoSource,
+		const bool bPrintDebug) const
 	{
 		FString Result;
 		if (Type == EType::Unknown)
@@ -255,6 +277,13 @@ struct FVoxelPluginVersion
 			}
 		}
 
+		if (bPrintNoSource)
+		{
+			if (bNoSource)
+			{
+				Result += "-nosource";
+			}
+		}
 		if (bPrintDebug)
 		{
 			if (bDebug)
@@ -265,8 +294,36 @@ struct FVoxelPluginVersion
 
 		return Result;
 	}
-	FText ToDisplayString() const
+	FString ToString_API() const
 	{
-		return FText::FromString(ToString(false, false, true));
+		return ToString(true, true, true, true);
+	}
+	FString ToString_MajorMinor() const
+	{
+		return ToString(false, false, false, false);
+	}
+	FString ToString_UserFacing() const
+	{
+		FString Result = ToString_MajorMinor();
+		if (bNoSource || bDebug)
+		{
+			Result += " (";
+
+			if (bNoSource)
+			{
+				Result += "No source";
+				if (bDebug)
+				{
+					Result += ", ";
+				}
+			}
+			if (bDebug)
+			{
+				Result += "debug";
+			}
+
+			Result += ")";
+		}
+		return Result;
 	}
 };
