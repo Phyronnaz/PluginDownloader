@@ -24,32 +24,7 @@ public:
 	{
 		// Hack to increase the HTTP tick rate
 		// Makes downloads much faster
-		{
-			FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
-
-			struct FHttpThreadHack : FHttpThread
-			{
-				void Fixup()
-				{
-					HttpThreadActiveFrameTimeInSeconds = 1 / 100000.f;
-				}
-			};
-
-			struct FHttpManagerHack : FHttpManager
-			{
-				void Fixup()
-				{
-					if (!Thread)
-					{
-						return;
-					}
-
-					static_cast<FHttpThreadHack*>(Thread)->Fixup();
-				}
-			};
-
-			static_cast<FHttpManagerHack&>(HttpManager).Fixup();
-		}
+		FHttpModule::Get().SetHttpThreadActiveFrameTimeInSeconds(1 / 100000.f);
 
 		// Download the plugin list & check for updates
 		FPluginDownloaderUtilities::DelayedCall([]
@@ -68,7 +43,7 @@ public:
 			{
 				return MakeShared<FPluginDownloaderCustomCustomization>();
 			}));
-			
+
 			PropertyModule.RegisterCustomClassLayout(UPluginDownloaderTokens::StaticClass()->GetFName(), FOnGetDetailCustomizationInstance::CreateLambda([]
 			{
 				return MakeShared<FPluginDownloaderTokensCustomization>();
@@ -112,7 +87,7 @@ public:
 			TWeakPtr<SDockTab> SpawnedTabPtr;
 		};
 		static_assert(sizeof(FTabSpawnerEntryHack) == sizeof(FTabSpawnerEntry), "");
-		
+
 		OnSpawnTab = reinterpret_cast<FTabSpawnerEntryHack&>(*TabSpawner).OnSpawnTab;
 
 		FGlobalTabmanager::Get()->UnregisterTabSpawner(TabId);

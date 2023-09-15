@@ -68,3 +68,8 @@ void SVideoPlayer::AddReferencedObjects(FReferenceCollector& Collector)
 	Collector.AddReferencedObject(MediaTexture);
 	Collector.AddReferencedObject(MediaSource);
 }
+
+FString SVideoPlayer::GetReferencerName() const
+{
+	return "SVideoPlayer";
+}

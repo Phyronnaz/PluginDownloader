@@ -69,7 +69,7 @@ void FVoxelAuthDownload::Download(const FVoxelPluginVersion& Version)
 			FText::FromString("VoxelPro found in " + FPaths::ConvertRelativePathToFull(Plugin->GetBaseDir()) + ". Please uninstall it first."));
 		return;
 	}
-	
+
 	if (const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin("VoxelFree"))
 	{
 		FMessageDialog::Open(
@@ -107,14 +107,14 @@ void FVoxelAuthDownload::Download(const FVoxelPluginVersion& Version)
 		return;
 	}
 
-	FNotificationInfo Info(FText::FromString("Downloading Voxel Plugin " + Version.ToDisplayString().ToString()));
+	FNotificationInfo Info(FText::FromString("Downloading Voxel Plugin " + Version.ToString_UserFacing()));
 	Info.bFireAndForget = false;
 	Notification = FSlateNotificationManager::Get().AddNotification(Info);
 
 	GVoxelAuthApi->MakeRequest(
 		"version/download",
 		{
-			{ "version", Version.ToString() },
+			{ "version", Version.ToString_API() },
 		},
 		FVoxelAuthApi::ERequestVerb::Get,
 		true,
@@ -127,7 +127,7 @@ void FVoxelAuthDownload::Download(const FVoxelPluginVersion& Version)
 				Fail("Failed get download URL for Voxel Plugin");
 				return;
 			}
-			
+
 			TSharedPtr<FJsonValue> ParsedValue;
 			const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
 			if (!ensure(FJsonSerializer::Deserialize(Reader, ParsedValue)) ||
@@ -192,7 +192,7 @@ void FVoxelAuthDownload::Download(const FVoxelPluginVersion& Version)
 				}
 
 				const TArray<uint8> Result = NewResponse->GetContent();
-				
+
 				if (!ensure(FSHA1::HashBuffer(Result.GetData(), Result.Num()).ToString() == Hash))
 				{
 					Fail("Failed to download Voxel Plugin: invalid hash");
@@ -287,7 +287,7 @@ void FVoxelAuthDownload::FinalizeDownload(const TArray<uint8>& Data, const FStri
 		Fail("Failed to unzip Voxel Plugin: " + ZipError);
 		return;
 	}
-	
+
 	const FString IntermediateDir = FPluginDownloaderUtilities::GetIntermediateDir();
 	const FString TrashDir = IntermediateDir / "Trash" / "OldVoxelPlugin";
 	const FString PackagedDir = IntermediateDir / "Voxel";
@@ -316,7 +316,7 @@ void FVoxelAuthDownload::FinalizeDownload(const TArray<uint8>& Data, const FStri
 		Fail("Failed to write InstallPlugin.bat");
 		return;
 	}
-	
+
 	if (!FPluginDownloaderUtilities::WriteRestartEngineBatch())
 	{
 		Fail("Failed to write RestartEngine.bat");

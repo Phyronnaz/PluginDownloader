@@ -106,7 +106,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 				]
 			]
 		]
-	
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(0, 10, 0, 0)
@@ -166,7 +166,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 			{
 				return SNullWidget::NullWidget;
 			}
-			return SNew(STextBlock).Text(Item->ToDisplayString());
+			return SNew(STextBlock).Text(FText::FromString(Item->ToString_UserFacing()));
 		})
 		.OnSelectionChanged_Lambda([](const TSharedPtr<FVoxelPluginVersion>& Item, ESelectInfo::Type)
 		{
@@ -180,7 +180,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 			SNew(STextBlock)
 			.Text_Lambda([]
 			{
-				return GVoxelAuthApi->SelectedVersion.ToDisplayString();
+				return FText::FromString(GVoxelAuthApi->SelectedVersion.ToString_UserFacing());
 			})
 		];
 
@@ -213,7 +213,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 		{
 			return GVoxelAuthApi->IsPro() && GVoxelAuthApi->AllVersions.Num() > 0 ? EVisibility::Visible : EVisibility::Collapsed;
 		})
-		
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(0, 10, 0, 0)
@@ -241,11 +241,11 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 					}
 
 					const bool bIsLatest = GVoxelAuthApi->GetPluginState() == FVoxelAuthApi::EState::NoUpdate;
-					return FText::FromString(GVoxelAuthApi->PluginVersion.ToDisplayString().ToString() + (bIsLatest ? " (latest)" : " (not latest)"));
+					return FText::FromString(GVoxelAuthApi->PluginVersion.ToString_UserFacing() + (bIsLatest ? " (latest)" : " (not latest)"));
 				})
 			]
 		]
-		
+
 		+ SVerticalBox::Slot()
 		.AutoHeight()
 		.Padding(0, 10, 0, 0)
@@ -345,7 +345,7 @@ void SVoxelAuthWidget::Construct(const FArguments& Args)
 					]
 				]
 			]
-			
+
 			+ SHorizontalBox::Slot()
 		];
 
