@@ -11,7 +11,7 @@
 #include "IUATHelperModule.h"
 #include "UObject/UnrealType.h"
 #include "PropertyEditorModule.h"
-#include "Launch/Resources/Version.h"
+#include "Runtime/Launch/Resources/Version.h"
 #include "Materials/MaterialInstanceDynamic.h"
 
 #include "Misc/Base64.h"
