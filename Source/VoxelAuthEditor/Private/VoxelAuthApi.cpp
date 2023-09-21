@@ -144,7 +144,11 @@ void FVoxelAuthApi::VerifyGumroadKey(const FString& GumroadKey)
 				UE_LOG(LogPluginDownloader, Error, TEXT("Failed to verify license key: %d %s"), Response->GetResponseCode(), *Response->GetContentAsString());
 
 				const FText Title = INVTEXT("Failed to verify license key");
+#if ENGINE_VERSION < 503
 				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Response->GetContentAsString()), &Title);
+#else
+				FMessageDialog::Open(EAppMsgType::Ok, FText::FromString(Response->GetContentAsString()), Title);
+#endif
 				return;
 			}
 

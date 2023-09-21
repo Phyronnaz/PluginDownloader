@@ -9,8 +9,6 @@
 #include "PluginDownloaderUtilities.h"
 #include "PluginDownloaderCustomization.h"
 
-#include "HTTP/Private/HttpThread.h"
-
 #define LOCTEXT_NAMESPACE "PluginDownloader"
 
 class FPluginDownloaderEditorModule : public IModuleInterface

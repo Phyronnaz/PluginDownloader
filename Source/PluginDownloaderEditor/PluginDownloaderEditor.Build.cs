@@ -10,6 +10,7 @@ public class PluginDownloaderEditor : ModuleRules
     {
         PrivatePCHHeaderFile = "Public/VoxelMinimal.h";
         bUseUnity = false;
+		CppStandard = CppStandardVersion.Cpp17;
 
         // Marketplace requires third party deps to be in a ThirdParty folder
         PrivateIncludePaths.Add(ModuleDirectory + "/../ThirdParty");
