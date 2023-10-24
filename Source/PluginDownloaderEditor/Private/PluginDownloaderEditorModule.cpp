@@ -11,7 +11,7 @@
 
 #include "HttpModule.h"
 #include "HttpManager.h"
-#include "HTTP/Private/HttpThread.h"
+#include "Runtime/Online/HTTP/Private/HttpThread.h"
 
 #define LOCTEXT_NAMESPACE "PluginDownloader"
 
