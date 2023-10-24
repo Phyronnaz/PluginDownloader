@@ -9,6 +9,10 @@
 #include "PluginDownloaderUtilities.h"
 #include "PluginDownloaderCustomization.h"
 
+#include "HttpModule.h"
+#include "HttpManager.h"
+#include "HTTP/Private/HttpThread.h"
+
 #define LOCTEXT_NAMESPACE "PluginDownloader"
 
 class FPluginDownloaderEditorModule : public IModuleInterface
@@ -20,9 +24,36 @@ public:
 
 	virtual void StartupModule() override
 	{
-		// Hack to increase the HTTP tick rate
+		// Increase the HTTP tick rate
 		// Makes downloads much faster
-		FHttpModule::Get().SetHttpThreadActiveFrameTimeInSeconds(1 / 100000.f);
+		{
+			LOG_VOXEL(Log, "Increasing HTTP Tick Rate");
+
+			FHttpManager& HttpManager = FHttpModule::Get().GetHttpManager();
+
+			struct FHttpThreadHack : FHttpThread
+			{
+				void Fixup()
+				{
+					HttpThreadActiveFrameTimeInSeconds = 1 / 100000.f;
+				}
+			};
+
+			struct FHttpManagerHack : FHttpManager
+			{
+				void Fixup() const
+				{
+					if (!Thread)
+					{
+						return;
+					}
+
+					static_cast<FHttpThreadHack*>(Thread)->Fixup();
+				}
+			};
+
+			static_cast<FHttpManagerHack&>(HttpManager).Fixup();
+		}
 
 		// Download the plugin list & check for updates
 		FPluginDownloaderUtilities::DelayedCall([]
