@@ -66,7 +66,7 @@ void FVoxelAuthApi::UpdateVersions()
 				!Response ||
 				Response->GetResponseCode() != 200)
 			{
-				UE_LOG(LogPluginDownloader, Error, TEXT("Failed to query versions: %d %s"), Response->GetResponseCode(), *Response->GetContentAsString());
+				// TODO Response might be null UE_LOG(LogPluginDownloader, Error, TEXT("Failed to query versions: %d %s"), Response->GetResponseCode(), *Response->GetContentAsString());
 				return;
 			}
 
