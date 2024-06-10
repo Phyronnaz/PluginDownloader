@@ -27,9 +27,9 @@ public:
 
 private:
 	FSlateBrush VideoBrush;
-	UMaterialInstanceDynamic* VideoMaterial = nullptr;
+	TObjectPtr<UMaterialInstanceDynamic> VideoMaterial;
 
-	UMediaPlayer* MediaPlayer = nullptr;
-	UMediaTexture* MediaTexture = nullptr;
-	UMediaSource* MediaSource = nullptr;
+	TObjectPtr<UMediaPlayer> MediaPlayer;
+	TObjectPtr<UMediaTexture> MediaTexture;
+	TObjectPtr<UMediaSource> MediaSource;
 };

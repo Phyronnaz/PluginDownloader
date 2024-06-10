@@ -34,8 +34,6 @@ public class VoxelAuthEditor : ModuleRules
                 "MediaAssets",
                 "UATHelper",
 #if UE_5_0_OR_LATER
-				"EOSSDK",
-				"EOSShared",
 				"ToolMenus",
 #endif
             });

@@ -32,6 +32,9 @@ public class PluginDownloaderEditor : ModuleRules
                 "JsonUtilities",
                 "MediaAssets",
                 "UATHelper",
+#if UE_5_4_OR_LATER
+                "EventLoop",
+#endif
                 "DeveloperSettings",
             });
 

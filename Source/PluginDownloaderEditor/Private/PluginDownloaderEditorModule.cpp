@@ -111,7 +111,17 @@ public:
 			/** Whether to automatically generate a menu entry for this tab spawner */
 			bool bAutoGenerateMenuEntry;
 
+#if ENGINE_VERSION >= 504
+			/** Whether or not this tab can ever be in a sidebar */
+			bool bCanSidebarTab;
+#endif
+
 			TWeakPtr<SDockTab> SpawnedTabPtr;
+
+#if ENGINE_VERSION >= 504
+			/** How this tab behaves when the tab manager is in a read only mode */
+			ETabReadOnlyBehavior ReadOnlyBehavior;
+#endif
 		};
 		static_assert(sizeof(FTabSpawnerEntryHack) == sizeof(FTabSpawnerEntry), "");
 

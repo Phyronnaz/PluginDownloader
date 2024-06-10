@@ -50,7 +50,7 @@ void FPluginDownloaderApi::Initialize()
 		{
 			return;
 		}
-		
+
 		for (const TSharedPtr<FJsonValue>& JsonValue : ParsedValue->AsArray())
 		{
 			if (!JsonValue)
@@ -80,7 +80,7 @@ void FPluginDownloaderApi::Initialize()
 		{
 			FPluginDownloaderUpdates::CheckForUpdate(*Info);
 		}
-		
+
 		const TSharedRef<FPluginDownloaderRemoteInfo> CustomInfo = MakeShared<FPluginDownloaderRemoteInfo>();
 		CustomInfo->Name = "Custom";
 		CustomInfo->Icon = "https://raw.githubusercontent.com/Phyronnaz/PluginDownloaderData/master/Icons/Custom.png";
@@ -145,7 +145,7 @@ void FPluginDownloaderApi::GetRepoAutocomplete(const FPluginDownloaderInfo& Info
 				continue;
 			}
 
-			Result.Add(JsonObject->GetStringField("name"));
+			Result.Add(JsonObject->GetStringField(TEXT("name")));
 		}
 
 		OnAutocompleteReceived.ExecuteIfBound(Result);
@@ -195,7 +195,7 @@ void FPluginDownloaderApi::GetBranchAutocomplete(const FPluginDownloaderInfo& In
 				continue;
 			}
 
-			Result.Add(JsonObject->GetStringField("name"));
+			Result.Add(JsonObject->GetStringField(TEXT("name")));
 		}
 
 		OnAutocompleteReceived.ExecuteIfBound(Result);
@@ -245,7 +245,7 @@ void FPluginDownloaderApi::GetTagAutocomplete(const FPluginDownloaderInfo& Info,
 				continue;
 			}
 
-			Result.Add(JsonObject->GetStringField("name"));
+			Result.Add(JsonObject->GetStringField(TEXT("name")));
 		}
 
 		OnAutocompleteReceived.ExecuteIfBound(Result);
@@ -312,7 +312,7 @@ void FPluginDownloaderApi::GetDescriptor(const FPluginDownloaderRemoteInfo& Info
 		OnDescriptorReceived.ExecuteIfBound(nullptr);
 		return;
 	}
-	
+
 	const FHttpRequestRef Request = FHttpModule::Get().CreateRequest();
 	Request->SetURL("https://raw.githubusercontent.com" / Info.User / Info.Repo / Info.StableBranch / Info.Descriptor);
 	Request->SetVerb(TEXT("GET"));
@@ -327,9 +327,9 @@ void FPluginDownloaderApi::GetDescriptor(const FPluginDownloaderRemoteInfo& Info
 		FPluginDescriptor Descriptor;
 
 		TArray<uint8> UTF8Content = HttpResponse->GetContent();
-		if (UTF8Content.Num() > 3 && 
-			UTF8Content[0] == 0xEF && 
-			UTF8Content[1] == 0xBB && 
+		if (UTF8Content.Num() > 3 &&
+			UTF8Content[0] == 0xEF &&
+			UTF8Content[1] == 0xBB &&
 			UTF8Content[2] == 0xBF)
 		{
 			// BOM

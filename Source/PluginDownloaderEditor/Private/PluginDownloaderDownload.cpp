@@ -60,7 +60,7 @@ void FPluginDownloaderDownload::Start()
 	Request->SetURL("https://api.github.com/repos" / Info.User / Info.Repo / "zipball" / Info.Branch);
 	Request->SetVerb(TEXT("GET"));
 	GetDefault<UPluginDownloaderTokens>()->AddAuthToRequest(*Request);
-	
+
 	ProgressWindow =
 		SNew(SWindow)
 		.Title(NSLOCTEXT("PluginDownloader", "DownloadingPlugin", "Downloading Plugin"))
@@ -107,7 +107,9 @@ void FPluginDownloaderDownload::Start()
 
 	FSlateApplication::Get().AddWindow(ProgressWindow.ToSharedRef());
 
+	PRAGMA_DISABLE_DEPRECATION_WARNINGS
 	Request->OnRequestProgress().BindRaw(this, &FPluginDownloaderDownload::OnRequestProgress);
+	PRAGMA_ENABLE_DEPRECATION_WARNINGS
 	Request->OnProcessRequestComplete().BindRaw(this, &FPluginDownloaderDownload::OnRequestComplete);
 	Request->ProcessRequest();
 
@@ -143,7 +145,7 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	{
 		return Destroy("Query failed");
 	}
-	
+
 	if (HttpResponse->GetResponseCode() == EHttpResponseCodes::NotFound)
 	{
 		return Destroy("Repository or branch not found. Make sure you have a valid access token.\nYour engine version might also not be supported by the plugin");
@@ -161,7 +163,7 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	{
 		return Destroy("Failed to unzip: " + ZipError);
 	}
-	
+
 	FString UPlugin;
 	for (auto& It : Files)
 	{
@@ -309,9 +311,9 @@ void FPluginDownloaderDownload::OnRequestComplete(FHttpRequestPtr HttpRequest, F
 	{
 		return Destroy("Can't install plugin into " + InstallDir + ": folder already exists but is a different plugin");
 	}
-	
+
 	IFileManager::Get().MakeDirectory(*TrashDir, true);
-	
+
 	// InstallPlugin.bat
 	if (!FPluginDownloaderUtilities::WriteInstallPluginBatch())
 	{
@@ -403,7 +405,7 @@ void FPluginDownloaderDownload::OnPackageComplete(const FString& Result, const F
 {
 	ensure(GActivePluginDownloaderDownload == this);
 	check(IsInGameThread());
-	
+
 	if (Result != "Completed")
 	{
 		if (Result == "Canceled")

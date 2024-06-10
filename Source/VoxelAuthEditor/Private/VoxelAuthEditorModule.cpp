@@ -2,18 +2,37 @@
 
 #include "VoxelMinimal.h"
 #include "ToolMenus.h"
-#include "VoxelAuth.h"
-#include "VoxelAuthApi.h"
-#include "SVoxelAuthWidget.h"
-#include "VoxelAuthDownload.h"
 #include "PluginDownloaderSettings.h"
-#include "PluginDownloaderUtilities.h"
 #include "Styling/SlateStyle.h"
 #include "Styling/SlateStyleRegistry.h"
 
 TSharedRef<SWidget> GenerateVoxelMenuWidget()
 {
-	return SNew(SVoxelAuthWidget);
+	return
+		SNew(SBox)
+		.Padding(10)
+		[
+			SNew(SVerticalBox)
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			[
+				SNew(STextBlock)
+				.Text(INVTEXT("Please use Voxel Plugin Installer"))
+			]
+			+ SVerticalBox::Slot()
+			.AutoHeight()
+			.Padding(10)
+			.HAlign(HAlign_Center)
+			[
+				SNew(SButton)
+				.Text(INVTEXT("Open Marketplace"))
+				.OnClicked_Lambda([]
+				{
+					FPlatformProcess::LaunchURL(TEXT("https://www.unrealengine.com/marketplace/product/voxel-plugin-installer"), nullptr, nullptr);
+					return FReply::Handled();
+				})
+			]
+		];
 }
 
 FSlateStyleSet* GVoxelAuthStyle = nullptr;
@@ -55,25 +74,13 @@ public:
 
 		FSlateStyleRegistry::RegisterSlateStyle(*GVoxelAuthStyle);
 
-		GVoxelAuth = new FVoxelAuth();
-		GVoxelAuthApi = new FVoxelAuthApi();
-		GVoxelAuthDownload = new FVoxelAuthDownload();
-		
 		UToolMenu* ToolBar = UToolMenus::Get()->RegisterMenu(
-			"LevelEditor.LevelEditorToolBar.SettingsToolbar", 
-			NAME_None, 
-			EMultiBoxType::SlimHorizontalToolBar, 
+			"LevelEditor.LevelEditorToolBar.SettingsToolbar",
+			NAME_None,
+			EMultiBoxType::SlimHorizontalToolBar,
 			false);
 
 		FToolMenuSection& Section = ToolBar->FindOrAddSection("ProjectSettings");
-
-		FPluginDownloaderUtilities::DelayedCall([]
-		{
-			if (GetDefault<UPluginDownloaderSettings>()->bShowVoxelPluginMenu)
-			{
-				GVoxelAuthApi->Initialize();
-			}
-		});
 
 		Section.AddDynamicEntry("VoxelPluginMenu", FNewToolMenuSectionDelegate::CreateLambda([](FToolMenuSection& InSection)
 		{
@@ -90,19 +97,7 @@ public:
 				INVTEXT("Voxel Plugin configuration"),
 				MakeAttributeLambda([]
 				{
-					switch (GVoxelAuthApi->GetPluginState())
-					{
-					default: check(false);
-					case FVoxelAuthApi::EState::NoUpdate:
-					case FVoxelAuthApi::EState::NotInstalled:
-					{
-						return FSlateIcon("VoxelAuthStyle", "VoxelIcon");
-					}
-					case FVoxelAuthApi::EState::HasUpdate:
-					{
-						return FSlateIcon("VoxelAuthStyle", "VoxelIconWithUpdate");
-					}
-					}
+					return FSlateIcon("VoxelAuthStyle", "VoxelIcon");
 				})
 			));
 		}));
